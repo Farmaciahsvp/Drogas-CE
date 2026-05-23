@@ -1,0 +1,26 @@
+/* index.css - Custom transitions and animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Custom scrollbar rules (fallback) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1326;
+}
+::-webkit-scrollbar-thumb {
+  background: #3d4947;
+  border-radius: 10px;
+}
