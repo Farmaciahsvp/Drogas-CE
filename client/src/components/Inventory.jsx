@@ -394,11 +394,17 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
         ) : (
           <div className="space-y-sm max-h-[320px] overflow-y-auto pr-sm scrollbar-thin">
             {inventoryAudits.map((audit) => (
+              (() => {
+                const hasDiscrepancy = (audit.items || []).some((item) => Number(item.difference || 0) !== 0);
+                const cardClass = hasDiscrepancy
+                  ? 'w-full text-left bg-error/10 border border-error/40 rounded-lg p-sm hover:bg-error/15 transition-colors'
+                  : 'w-full text-left bg-surface-container-low border border-outline-variant rounded-lg p-sm hover:bg-surface-variant/30 transition-colors';
+                return (
               <button
                 key={audit.id}
                 type="button"
                 onClick={() => handleOpenAuditDetails(audit)}
-                className="w-full text-left bg-surface-container-low border border-outline-variant rounded-lg p-sm hover:bg-surface-variant/30 transition-colors"
+                className={cardClass}
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-on-surface">Toma #{audit.id}</p>
@@ -409,7 +415,14 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                 <div className="mt-2 text-xs text-on-surface-variant">
                   {audit.items.length} medicamentos revisados
                 </div>
+                {hasDiscrepancy && (
+                  <div className="mt-1 text-xs font-semibold text-error">
+                    Discrepancia detectada
+                  </div>
+                )}
               </button>
+                );
+              })()
             ))}
           </div>
         )}
