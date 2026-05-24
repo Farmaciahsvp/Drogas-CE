@@ -4,6 +4,7 @@ const OFFLINE_QUEUE_KEY = 'offline_sync_queue_v1';
 const DASHBOARD_TIMEOUT_MS = 10000;
 const SESSION_CACHE_TTL_MS = 120000;
 const SESSION_CACHE_PREFIX = 'drogasce_cache_v1:';
+const WEEKLY_DISPENSE_WINDOW_DAYS = 90;
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
@@ -119,6 +120,14 @@ const buildWeeklyDispenseAverages = (prescriptions) => {
     filters: CATEGORY_FILTERS,
     series: output
   };
+};
+
+const logApiError = (scope, error, extra = {}) => {
+  console.error('[api-error]', {
+    scope,
+    message: error?.message || String(error),
+    ...extra
+  });
 };
 
 const cacheUserScope = () => {
@@ -530,10 +539,16 @@ export const api = {
         }));
         const { error: itemsError } = await supabase.from('prescription_items').insert(rows);
         if (!itemsError) {
-          await api.prescriptions.dispense(header.id);
+          if (dispenseImmediately) {
+            await api.prescriptions.dispense(header.id);
+          }
           invalidateOperationalCache();
-          return { id: header.id, code: header.code };
+          return { id: header.id, code: header.code, status: dispenseImmediately ? 'dispensed' : 'pending' };
         }
+        logApiError('prescriptions.create.itemsInsert', itemsError, { prescription_id: header.id });
+      }
+      if (headerError) {
+        logApiError('prescriptions.create.headerInsert', headerError, { code });
       }
       const err = new Error('No se pudo registrar la receta en Supabase.');
       if (!fromReplay && !navigator.onLine) {
@@ -756,6 +771,7 @@ export const api = {
       }));
 
       const loadPromise = (async () => {
+        const sinceIso = new Date(Date.now() - (WEEKLY_DISPENSE_WINDOW_DAYS * 24 * 60 * 60 * 1000)).toISOString();
         const [statsRes, txRes, dispensedRes] = await Promise.all([
           supabase.rpc('get_dashboard_stats'),
           supabase
@@ -767,6 +783,7 @@ export const api = {
             .from('prescriptions')
             .select('id, created_at, status, prescription_items(medications(category))')
             .eq('status', 'dispensed')
+            .gte('created_at', sinceIso)
         ]);
         let txRows = txRes.data;
         let txErr = txRes.error;
@@ -784,6 +801,9 @@ export const api = {
         const weeklyDispenseAverages = dispensedRes.error
           ? { filters: CATEGORY_FILTERS, series: { all: [], psychotropic: [], narcotic: [], other: [] } }
           : buildWeeklyDispenseAverages(dispensedRes.data || []);
+        if (dispensedRes.error) {
+          logApiError('dashboard.weeklyDispenseAverages', dispensedRes.error);
+        }
 
         if (statsRes.error) {
           const [medRes, prescRes] = await Promise.all([

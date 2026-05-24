@@ -29,9 +29,12 @@ export default function Prescriptions({ user }) {
   const [dateTo, setDateTo] = useState('');
   const [medFilter, setMedFilter] = useState('');
   const [dataScope, setDataScope] = useState('recent');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
 
   const loadData = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const [medsData, prescData] = await Promise.all([
         api.inventory.getAll(),
@@ -40,7 +43,7 @@ export default function Prescriptions({ user }) {
       setMedications(medsData);
       setPrescriptions(prescData);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      setErrorMsg('Error al cargar datos de recetas e inventario.');
     } finally {
       setLoading(false);
     }
@@ -52,25 +55,27 @@ export default function Prescriptions({ user }) {
 
   const handleSubmitPrescription = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+    setInfoMsg('');
 
     if (!prescriptionNumber || !patientId) {
-      alert('Por favor complete Numero de Receta y Numero de Identificacion.');
+      setErrorMsg('Por favor complete Número de Receta y Número de Identificación.');
       return;
     }
 
     const med = medications.find((m) => m.id === parseInt(selectedMedId));
     if (!med) {
-      alert('Seleccione un medicamento.');
+      setErrorMsg('Seleccione un medicamento.');
       return;
     }
 
     if (quantity <= 0) {
-      alert('La cantidad debe ser mayor a 0');
+      setErrorMsg('La cantidad debe ser mayor a 0.');
       return;
     }
 
     if (med.stock < quantity) {
-      alert(`No hay stock suficiente (${quantity} solicitados, ${med.stock} disponibles).`);
+      setErrorMsg(`No hay stock suficiente (${quantity} solicitados, ${med.stock} disponibles).`);
       return;
     }
 
@@ -97,10 +102,11 @@ export default function Prescriptions({ user }) {
       setSelectedMedId('');
       setQuantity(1);
       setDispenseImmediately(true);
+      setInfoMsg('Receta registrada correctamente.');
 
       loadData();
     } catch (err) {
-      alert(err.message);
+      setErrorMsg(err.message || 'No se pudo registrar la receta.');
     }
   };
 
@@ -120,14 +126,14 @@ export default function Prescriptions({ user }) {
       setIsEditingDetails(false);
       setIsDetailsModalOpen(true);
     } catch (error) {
-      alert('Error al obtener los detalles de la receta.');
+      setErrorMsg('Error al obtener los detalles de la receta.');
     }
   };
 
   const handleSaveDetails = async () => {
     if (!selectedPrescription?.id) return;
     if (!detailsForm.recipeNumber || !detailsForm.patientId || !detailsForm.medicationId || Number(detailsForm.quantity) <= 0) {
-      alert('Complete todos los campos obligatorios de la receta.');
+      setErrorMsg('Complete todos los campos obligatorios de la receta.');
       return;
     }
     try {
@@ -153,8 +159,9 @@ export default function Prescriptions({ user }) {
       });
       setIsEditingDetails(false);
       await loadData();
+      setInfoMsg('Receta actualizada correctamente.');
     } catch (error) {
-      alert(error.message || 'No se pudo actualizar la receta.');
+      setErrorMsg(error.message || 'No se pudo actualizar la receta.');
     }
   };
 
@@ -168,8 +175,9 @@ export default function Prescriptions({ user }) {
       setSelectedPrescription(null);
       setIsEditingDetails(false);
       await loadData();
+      setInfoMsg('Receta eliminada correctamente.');
     } catch (error) {
-      alert(error.message || 'No se pudo eliminar la receta.');
+      setErrorMsg(error.message || 'No se pudo eliminar la receta.');
     }
   };
 
@@ -232,6 +240,19 @@ export default function Prescriptions({ user }) {
           <option value="all">Histórico completo</option>
         </select>
       </div>
+
+      {errorMsg && (
+        <div className="bg-error-container/20 border border-error text-error p-sm rounded-lg flex items-center gap-xs text-xs">
+          <span className="material-symbols-outlined text-sm">warning</span>
+          <span>{errorMsg}</span>
+        </div>
+      )}
+      {infoMsg && (
+        <div className="bg-secondary-container/20 border border-secondary text-secondary p-sm rounded-lg flex items-center gap-xs text-xs">
+          <span className="material-symbols-outlined text-sm">check_circle</span>
+          <span>{infoMsg}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
         <div className="lg:col-span-2 bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm space-y-md">
