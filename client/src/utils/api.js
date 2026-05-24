@@ -34,14 +34,24 @@ const isOfflineLikeError = (err) => {
 };
 
 const enqueueOffline = (kind, payload) => {
+  const enrichedPayload = { ...payload };
+  if (kind === 'prescriptions.create' && !enrichedPayload.__clientRequestId) {
+    enrichedPayload.__clientRequestId = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  }
   const queue = readOfflineQueue();
   queue.push({
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
     kind,
-    payload,
+    payload: enrichedPayload,
     created_at: new Date().toISOString()
   });
   writeOfflineQueue(queue);
+};
+
+const stableRecCodeFromClientId = (clientId) => {
+  const digits = String(clientId || '').replace(/\D/g, '');
+  const lastSix = digits.slice(-6).padStart(6, '0');
+  return `REC-${lastSix}`;
 };
 
 export const flushOfflineQueue = async () => {
@@ -283,14 +293,17 @@ export const api = {
         patient_id,
         doctor_name,
         items,
-        dispenseImmediately
+        dispenseImmediately,
+        __clientRequestId
       } = prescriptionData;
 
       const { data: authUser } = await supabase.auth.getUser();
       const uid = authUser?.user?.id;
       if (!uid) throw new Error('Sesion invalida.');
 
-      const code = `REC-${Math.floor(100000 + Math.random() * 900000)}`;
+      const code = __clientRequestId
+        ? stableRecCodeFromClientId(__clientRequestId)
+        : `REC-${Math.floor(100000 + Math.random() * 900000)}`;
       const status = 'pending';
 
       const { data: header, error: headerError } = await supabase
@@ -298,6 +311,17 @@ export const api = {
         .insert([{ code, patient_name, patient_id, doctor_name, status, created_by: uid }])
         .select('id, code')
         .single();
+
+      if (headerError && String(headerError.message || '').toLowerCase().includes('duplicate key')) {
+        const { data: existing } = await supabase
+          .from('prescriptions')
+          .select('id, code')
+          .eq('code', code)
+          .single();
+        if (existing?.id) {
+          return { id: existing.id, code: existing.code, deduped: true };
+        }
+      }
       if (!headerError) {
         const rows = items.map((item) => ({
           prescription_id: header.id,
