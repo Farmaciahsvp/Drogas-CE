@@ -6,22 +6,16 @@ export default function Prescriptions({ user }) {
   const [medications, setMedications] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Datos de la Receta Física
-  const [patientName, setPatientName] = useState('');
+
+  // Captura simplificada
+  const [prescriptionNumber, setPrescriptionNumber] = useState('');
   const [patientId, setPatientId] = useState('');
-  const [doctorName, setDoctorName] = useState('');
   const [dispenseImmediately, setDispenseImmediately] = useState(true);
 
-  // Borrador de la receta actual
   const [draftItems, setDraftItems] = useState([]);
-  
-  // Selección actual de medicamento
   const [selectedMedId, setSelectedMedId] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [instructions, setInstructions] = useState('');
 
-  // Detalles de receta (Visualización)
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -60,13 +54,11 @@ export default function Prescriptions({ user }) {
       alert(`Advertencia: No hay stock suficiente para surtir de inmediato (${quantity} solicitados, ${med.stock} disponibles).`);
     }
 
-    // Verificar si ya existe en el borrador
     const existingIndex = draftItems.findIndex((item) => item.medication_id === med.id);
-    
+
     if (existingIndex >= 0) {
       const updated = [...draftItems];
       updated[existingIndex].quantity_prescribed = quantity;
-      updated[existingIndex].instructions = instructions || 'Tomar según indicación médica.';
       setDraftItems(updated);
     } else {
       setDraftItems([
@@ -76,15 +68,13 @@ export default function Prescriptions({ user }) {
           name: med.name,
           unit: med.unit,
           quantity_prescribed: quantity,
-          instructions: instructions || 'Tomar según indicación médica.'
+          instructions: 'Dispensacion segun receta fisica.'
         }
       ]);
     }
 
-    // Resetear campos de selección
     setSelectedMedId('');
     setQuantity(1);
-    setInstructions('');
   };
 
   const handleRemoveDraftItem = (medId) => {
@@ -94,8 +84,8 @@ export default function Prescriptions({ user }) {
   const handleSubmitPrescription = async (e) => {
     e.preventDefault();
 
-    if (!patientName || !patientId || !doctorName) {
-      alert('Por favor complete todos los datos del paciente y del médico firmante.');
+    if (!prescriptionNumber || !patientId) {
+      alert('Por favor complete Numero de Receta y Numero de Identificacion.');
       return;
     }
 
@@ -106,28 +96,25 @@ export default function Prescriptions({ user }) {
 
     try {
       const prescriptionData = {
-        patient_name: patientName,
+        patient_name: `Receta ${prescriptionNumber}`,
         patient_id: patientId,
-        doctor_name: doctorName,
+        doctor_name: 'No especificado',
         dispenseImmediately,
         items: draftItems.map((item) => ({
           medication_id: item.medication_id,
           quantity_prescribed: item.quantity_prescribed,
-          instructions: item.instructions
+          instructions: 'Dispensacion segun receta fisica.'
         }))
       };
 
       const response = await api.prescriptions.create(prescriptionData);
-      alert(`¡Receta física registrada con éxito!\nCódigo: ${response.code}\nEl medicamento ha sido egresado del stock e inventariado.`);
-      
-      // Limpiar formulario
-      setPatientName('');
+      alert(`Receta fisica registrada con exito. Codigo: ${response.code}`);
+
+      setPrescriptionNumber('');
       setPatientId('');
-      setDoctorName('');
       setDraftItems([]);
       setDispenseImmediately(true);
-      
-      // Recargar datos
+
       loadData();
     } catch (err) {
       alert(err.message);
@@ -147,23 +134,11 @@ export default function Prescriptions({ user }) {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'pending':
-        return (
-          <span className="bg-warning/10 text-warning px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-warning/20">
-            En Espera
-          </span>
-        );
+        return <span className="bg-warning/10 text-warning px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-warning/20">En Espera</span>;
       case 'dispensed':
-        return (
-          <span className="bg-secondary/10 text-secondary px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-secondary/20">
-            Dispensada
-          </span>
-        );
+        return <span className="bg-secondary/10 text-secondary px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-secondary/20">Dispensada</span>;
       case 'cancelled':
-        return (
-          <span className="bg-error/10 text-error px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-error/20">
-            Cancelada
-          </span>
-        );
+        return <span className="bg-error/10 text-error px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border border-error/20">Cancelada</span>;
       default:
         return <span className="text-xs uppercase font-bold">{status}</span>;
     }
@@ -173,172 +148,92 @@ export default function Prescriptions({ user }) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <RefreshCw className="animate-spin text-primary" size={32} />
-        <span className="ml-3 font-semibold text-primary">Cargando digitalización de recetas...</span>
+        <span className="ml-3 font-semibold text-primary">Cargando digitalizacion de recetas...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-lg">
-      
-      {/* PAGE HEADER */}
       <div className="flex justify-between items-end gap-md">
         <div>
-          <h2 className="font-headline-md text-headline-md text-on-surface">Registrar Receta Médica Física</h2>
+          <h2 className="font-headline-md text-headline-md text-on-surface">Registrar Receta Medica Fisica</h2>
           <p className="font-body-sm text-body-sm text-on-surface-variant">Digitalice las recetas recibidas en ventanilla para egresar medicamentos</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
-        
-        {/* FORMULARIO DE CAPTURA (IZQUIERDA) */}
         <div className="lg:col-span-2 bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm space-y-md">
           <div className="flex items-center gap-sm border-b border-outline-variant pb-xs">
             <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>edit_document</span>
-            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Captura de Receta Física</h3>
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Captura de Receta Fisica</h3>
           </div>
 
           <form onSubmit={handleSubmitPrescription} className="space-y-md">
-            
-            {/* Datos del Paciente */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
               <div className="flex flex-col gap-xs">
-                <label className="text-xs font-semibold text-on-surface-variant">Nombre del Paciente</label>
-                <input
-                  type="text"
-                  required
-                  className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                  placeholder="Ej. Juan Pérez López"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                />
+                <label className="text-xs font-semibold text-on-surface-variant">Numero de Receta</label>
+                <input type="text" required className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none" placeholder="Ej. 00124587" value={prescriptionNumber} onChange={(e) => setPrescriptionNumber(e.target.value)} />
               </div>
               <div className="flex flex-col gap-xs">
-                <label className="text-xs font-semibold text-on-surface-variant">DNI / Identificación</label>
-                <input
-                  type="text"
-                  required
-                  className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                  placeholder="Ej. 12345678-A"
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                />
+                <label className="text-xs font-semibold text-on-surface-variant">Numero de Identificacion</label>
+                <input type="text" required className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none" placeholder="Ej. 12345678-A" value={patientId} onChange={(e) => setPatientId(e.target.value)} />
               </div>
             </div>
 
-            {/* Médico firmante */}
-            <div className="flex flex-col gap-xs">
-              <label className="text-xs font-semibold text-on-surface-variant">Médico Prescriptor (Firmante en papel)</label>
-              <input
-                type="text"
-                required
-                className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                placeholder="Ej. Dr. Armando Mendoza"
-                value={doctorName}
-                onChange={(e) => setDoctorName(e.target.value)}
-              />
-            </div>
-
-            {/* Selector de Medicamentos */}
             <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant space-y-md">
-              <h4 className="font-body-lg text-body-lg text-primary font-semibold">Añadir Medicamento Prescrito</h4>
-              
-              <div className="flex flex-col gap-xs">
-                <label className="text-xs font-semibold text-on-surface-variant">Seleccionar Medicamento</label>
-                <select
-                  className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                  value={selectedMedId}
-                  onChange={(e) => setSelectedMedId(e.target.value)}
-                >
-                  <option value="">-- Seleccione un producto del almacén --</option>
-                  {medications.map((m) => (
-                    <option key={m.id} value={m.id} disabled={m.stock === 0}>
-                      {m.name} ({m.active_principle}) - Stock: {m.stock} {m.unit} {m.stock === 0 ? '[AGOTADO]' : ''}
-                    </option>
-                  ))}
-                </select>
+              <h4 className="font-body-lg text-body-lg text-primary font-semibold">Captura de Despacho</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Medicamento</label>
+                  <select className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none" value={selectedMedId} onChange={(e) => setSelectedMedId(e.target.value)}>
+                    <option value="">-- Seleccione un producto del almacen --</option>
+                    {medications.map((m) => (
+                      <option key={m.id} value={m.id} disabled={m.stock === 0}>
+                        {m.name} ({m.active_principle}) - Stock: {m.stock} {m.unit} {m.stock === 0 ? '[AGOTADO]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Cantidad a Despachar</label>
+                  <input type="number" min="1" className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} />
+                </div>
               </div>
 
-              {selectedMedId && (
-                <div className="space-y-md">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-                    <div className="flex flex-col gap-xs">
-                      <label className="text-xs font-semibold text-on-surface-variant">Cantidad Prescrita</label>
-                      <input
-                        type="number"
-                        min="1"
-                        className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                        value={quantity}
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-xs">
-                      <label className="text-xs font-semibold text-on-surface-variant">Indicaciones médicas</label>
-                      <input
-                        type="text"
-                        className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                        placeholder="Ej. 1 tableta cada 8 horas por 5 días"
-                        value={instructions}
-                        onChange={(e) => setInstructions(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleAddDraftItem}
-                    className="w-full h-9 rounded bg-surface-variant hover:bg-surface-container-highest text-primary font-label-caps text-label-caps text-xs flex items-center justify-center gap-xs font-semibold border border-primary/20"
-                  >
-                    <span className="material-symbols-outlined text-sm">add</span>
-                    Agregar a la receta
-                  </button>
-                </div>
-              )}
+              <button type="button" onClick={handleAddDraftItem} className="w-full h-10 rounded bg-surface-variant hover:bg-surface-container-highest text-primary font-label-caps text-label-caps text-xs flex items-center justify-center gap-xs font-semibold border border-primary/20">
+                <span className="material-symbols-outlined text-sm">add</span>
+                Agregar a la receta
+              </button>
             </div>
 
-            {/* Listado en borrador */}
             <div className="border-t border-dashed border-outline-variant pt-md">
               <h4 className="font-body-lg text-body-lg text-on-surface mb-sm font-semibold">Detalle de la receta</h4>
-              
               {draftItems.length > 0 ? (
                 <div className="space-y-xs">
                   {draftItems.map((item) => (
                     <div key={item.medication_id} className="bg-surface-container-low p-sm rounded border border-outline-variant flex justify-between items-center hover:bg-surface-variant/20 transition-all">
                       <div>
                         <p className="font-body-lg text-body-lg text-on-surface font-semibold">{item.name}</p>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant">
-                          Cantidad: <strong className="text-primary">{item.quantity_prescribed} {item.unit}</strong> | Indicaciones: {item.instructions}
-                        </p>
+                        <p className="font-body-sm text-body-sm text-on-surface-variant">Cantidad: <strong className="text-primary">{item.quantity_prescribed} {item.unit}</strong></p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDraftItem(item.medication_id)}
-                        className="text-error hover:bg-error-container/10 p-2 rounded-full transition-all"
-                      >
+                      <button type="button" onClick={() => handleRemoveDraftItem(item.medication_id)} className="text-error hover:bg-error-container/10 p-2 rounded-full transition-all">
                         <span className="material-symbols-outlined text-lg">delete</span>
                       </button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-on-surface-variant font-body-sm italic">
-                  Aún no ha agregado medicamentos a la receta actual.
-                </p>
+                <p className="text-sm text-on-surface-variant font-body-sm italic">Aun no ha agregado medicamentos a la receta actual.</p>
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={draftItems.length === 0}
-              className="w-full h-12 rounded bg-primary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center justify-center font-bold tracking-wider mt-md"
-            >
+            <button type="submit" disabled={draftItems.length === 0} className="w-full h-12 rounded bg-primary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center justify-center font-bold tracking-wider mt-md">
               REGISTRAR Y DISPENSAR STOCK
             </button>
-
           </form>
         </div>
 
-        {/* HISTORIAL / BITÁCORA DE CAPTURA (DERECHA) */}
         <div className="bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col h-[650px]">
           <div className="flex items-center gap-sm border-b border-outline-variant pb-xs mb-md">
             <span className="material-symbols-outlined text-on-surface-variant text-2xl">history</span>
@@ -356,14 +251,11 @@ export default function Prescriptions({ user }) {
                   <div>
                     <p className="font-body-lg text-body-lg text-on-surface font-semibold truncate leading-tight">{presc.patient_name}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">DNI: {presc.patient_id}</p>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Médico: {presc.doctor_name}</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Medico: {presc.doctor_name}</p>
                   </div>
                   <div className="flex justify-between items-center border-t border-outline-variant/40 pt-1 mt-1 text-[11px] text-on-surface-variant font-label-caps">
                     <span>{new Date(presc.created_at).toLocaleDateString('es-ES')}</span>
-                    <button 
-                      onClick={() => handleViewDetails(presc.code)}
-                      className="text-primary hover:underline flex items-center gap-[2px] font-semibold"
-                    >
+                    <button onClick={() => handleViewDetails(presc.code)} className="text-primary hover:underline flex items-center gap-[2px] font-semibold">
                       <span className="material-symbols-outlined text-[12px]">visibility</span>
                       Ver
                     </button>
@@ -377,78 +269,31 @@ export default function Prescriptions({ user }) {
             </div>
           )}
         </div>
-
       </div>
 
-      {/* --- MODAL DETALLE DE RECETA --- */}
       {isDetailsModalOpen && selectedPrescription && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-md">
           <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-lg w-full p-lg shadow-2xl relative">
-            <button 
-              onClick={() => setIsDetailsModalOpen(false)}
-              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"
-            >
+            <button onClick={() => setIsDetailsModalOpen(false)} className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface">
               <span className="material-symbols-outlined text-2xl">close</span>
             </button>
-            
             <div className="border-b border-outline-variant pb-xs mb-md flex justify-between items-center">
-              <div>
-                <h3 className="font-headline-md text-headline-md text-primary font-semibold">Receta Digitalizada</h3>
-                <p className="text-xs text-on-surface-variant mt-0.5">Código Único de Identificación</p>
-              </div>
+              <h3 className="font-headline-md text-headline-md text-primary font-semibold">Receta Digitalizada</h3>
               <span className="font-display-lg text-display-lg text-primary text-xl font-extrabold">{selectedPrescription.code}</span>
             </div>
-
-            <div className="space-y-md">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm bg-surface-container-low p-sm rounded-xl border border-outline-variant">
-                <div>
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">PACIENTE</span>
-                  <span className="font-body-lg text-body-lg text-on-surface font-semibold block leading-tight">{selectedPrescription.patient_name}</span>
-                  <span className="text-xs text-on-surface-variant">DNI: {selectedPrescription.patient_id}</span>
+            <div className="space-y-sm max-height-[250px] overflow-y-auto pr-sm scrollbar-thin">
+              {selectedPrescription.items?.map((item) => (
+                <div key={item.id} className="bg-surface-container-low p-sm rounded-lg border border-outline-variant">
+                  <div className="flex justify-between items-center font-semibold">
+                    <span className="text-on-surface text-sm">{item.medication_name}</span>
+                    <span className="text-primary text-sm font-bold">{item.quantity_prescribed} {item.unit}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">MÉDICO PRESCRIPTOR</span>
-                  <span className="font-body-lg text-body-lg text-on-surface font-semibold block leading-tight">{selectedPrescription.doctor_name}</span>
-                  <span className="text-xs text-on-surface-variant">Fórmula Física Certificada</span>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-body-lg text-body-lg text-on-surface mb-sm border-b border-outline-variant/60 pb-0.5 font-semibold">
-                  Medicamentos y Dosificación
-                </h4>
-                <div className="space-y-sm max-height-[250px] overflow-y-auto pr-sm scrollbar-thin">
-                  {selectedPrescription.items?.map((item) => (
-                    <div key={item.id} className="bg-surface-container-low p-sm rounded-lg border border-outline-variant">
-                      <div className="flex justify-between items-center font-semibold">
-                        <span className="text-on-surface text-sm">{item.medication_name}</span>
-                        <span className="text-primary text-sm font-bold">{item.quantity_prescribed} {item.unit}</span>
-                      </div>
-                      <div className="text-xs text-on-surface-variant border-t border-dashed border-outline-variant/50 pt-1 mt-1 font-body-sm">
-                        <strong>Indicación:</strong> {item.instructions}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-md justify-between items-center pt-sm border-t border-outline-variant">
-                <div className="flex items-center gap-sm">
-                  <span className="text-xs font-semibold text-on-surface-variant font-label-caps">Estado:</span>
-                  {getStatusBadge(selectedPrescription.status)}
-                </div>
-                <button 
-                  onClick={() => setIsDetailsModalOpen(false)}
-                  className="h-10 px-md rounded bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-caps text-label-caps text-xs"
-                >
-                  Cerrar
-                </button>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
