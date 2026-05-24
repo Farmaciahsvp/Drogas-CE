@@ -351,6 +351,26 @@ export const api = {
       });
       if (error) throw new Error(error.message || 'No se pudo dispensar la receta.');
       return data;
+    },
+    update: async (prescriptionId, payload) => {
+      const { data, error } = await supabase.rpc('update_prescription_record', {
+        p_prescription_id: prescriptionId,
+        p_recipe_number: payload.recipe_number,
+        p_patient_id: payload.patient_id,
+        p_doctor_name: payload.doctor_name || 'No especificado',
+        p_medication_id: payload.medication_id,
+        p_quantity: payload.quantity,
+        p_instructions: payload.instructions || null
+      });
+      if (error) throw new Error(error.message || 'No se pudo actualizar la receta.');
+      return data;
+    },
+    remove: async (prescriptionId) => {
+      const { data, error } = await supabase.rpc('delete_prescription_record', {
+        p_prescription_id: prescriptionId
+      });
+      if (error) throw new Error(error.message || 'No se pudo eliminar la receta.');
+      return data;
     }
   },
   transactions: {

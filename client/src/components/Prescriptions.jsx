@@ -15,6 +15,15 @@ export default function Prescriptions({ user }) {
 
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [detailsForm, setDetailsForm] = useState({
+    recipeNumber: '',
+    patientId: '',
+    doctorName: '',
+    medicationId: '',
+    quantity: 1,
+    instructions: ''
+  });
   const [successModal, setSuccessModal] = useState({ open: false, recipeNumber: '' });
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -98,9 +107,68 @@ export default function Prescriptions({ user }) {
     try {
       const data = await api.prescriptions.getByCode(code);
       setSelectedPrescription(data);
+      const firstItem = data?.items?.[0];
+      setDetailsForm({
+        recipeNumber: formatRecipeNumber(data?.patient_name || ''),
+        patientId: data?.patient_id || '',
+        doctorName: data?.doctor_name || 'No especificado',
+        medicationId: firstItem?.medication_id ? String(firstItem.medication_id) : '',
+        quantity: firstItem?.quantity_prescribed || 1,
+        instructions: firstItem?.instructions || 'Dispensacion segun receta fisica.'
+      });
+      setIsEditingDetails(false);
       setIsDetailsModalOpen(true);
     } catch (error) {
       alert('Error al obtener los detalles de la receta.');
+    }
+  };
+
+  const handleSaveDetails = async () => {
+    if (!selectedPrescription?.id) return;
+    if (!detailsForm.recipeNumber || !detailsForm.patientId || !detailsForm.medicationId || Number(detailsForm.quantity) <= 0) {
+      alert('Complete todos los campos obligatorios de la receta.');
+      return;
+    }
+    try {
+      await api.prescriptions.update(selectedPrescription.id, {
+        recipe_number: detailsForm.recipeNumber,
+        patient_id: detailsForm.patientId,
+        doctor_name: detailsForm.doctorName,
+        medication_id: Number(detailsForm.medicationId),
+        quantity: Number(detailsForm.quantity),
+        instructions: detailsForm.instructions
+      });
+
+      const refreshed = await api.prescriptions.getByCode(selectedPrescription.code);
+      setSelectedPrescription(refreshed);
+      const firstItem = refreshed?.items?.[0];
+      setDetailsForm({
+        recipeNumber: formatRecipeNumber(refreshed?.patient_name || ''),
+        patientId: refreshed?.patient_id || '',
+        doctorName: refreshed?.doctor_name || 'No especificado',
+        medicationId: firstItem?.medication_id ? String(firstItem.medication_id) : '',
+        quantity: firstItem?.quantity_prescribed || 1,
+        instructions: firstItem?.instructions || 'Dispensacion segun receta fisica.'
+      });
+      setIsEditingDetails(false);
+      await loadData();
+    } catch (error) {
+      alert(error.message || 'No se pudo actualizar la receta.');
+    }
+  };
+
+  const handleDeletePrescription = async () => {
+    if (!selectedPrescription?.id) return;
+    const ok = window.confirm('Esta accion eliminara la receta y revertira el rebajo de inventario asociado. Desea continuar?');
+    if (!ok) return;
+    try {
+      await api.prescriptions.remove(selectedPrescription.id);
+      setIsDetailsModalOpen(false);
+      setSelectedPrescription(null);
+      setIsEditingDetails(false);
+      await loadData();
+    } catch (error) {
+      alert(error.message || 'No se pudo eliminar la receta.');
     }
   };
 
@@ -282,23 +350,151 @@ export default function Prescriptions({ user }) {
 
       {isDetailsModalOpen && selectedPrescription && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-md">
-          <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-lg w-full p-lg shadow-2xl relative">
+          <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-2xl w-full p-lg shadow-2xl relative">
             <button onClick={() => setIsDetailsModalOpen(false)} className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface">
               <span className="material-symbols-outlined text-2xl">close</span>
             </button>
             <div className="border-b border-outline-variant pb-xs mb-md flex justify-between items-center">
               <h3 className="font-headline-md text-headline-md text-primary font-semibold">Receta Digitalizada</h3>
-              <span className="font-display-lg text-display-lg text-primary text-xl font-extrabold">{formatRecipeNumber(selectedPrescription.patient_name)}</span>
+              <span className="font-display-lg text-display-lg text-primary text-xl font-extrabold">{detailsForm.recipeNumber || formatRecipeNumber(selectedPrescription.patient_name)}</span>
             </div>
-            <div className="space-y-sm max-height-[250px] overflow-y-auto pr-sm scrollbar-thin">
-              {selectedPrescription.items?.map((item) => (
-                <div key={item.id} className="bg-surface-container-low p-sm rounded-lg border border-outline-variant">
-                  <div className="flex justify-between items-center font-semibold">
-                    <span className="text-on-surface text-sm">{item.medication_name}</span>
-                    <span className="text-primary text-sm font-bold">{item.quantity_prescribed} {item.unit}</span>
+            <div className="space-y-md max-h-[65vh] overflow-y-auto pr-sm scrollbar-thin">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Numero de Receta</label>
+                  {isEditingDetails ? (
+                    <input
+                      type="text"
+                      value={detailsForm.recipeNumber}
+                      onChange={(e) => setDetailsForm((prev) => ({ ...prev, recipeNumber: e.target.value }))}
+                      className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+                    />
+                  ) : (
+                    <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{formatRecipeNumber(selectedPrescription.patient_name)}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">DNI / Identificacion</label>
+                  {isEditingDetails ? (
+                    <input
+                      type="text"
+                      value={detailsForm.patientId}
+                      onChange={(e) => setDetailsForm((prev) => ({ ...prev, patientId: e.target.value }))}
+                      className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+                    />
+                  ) : (
+                    <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{selectedPrescription.patient_id}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Farmaceutico</label>
+                  <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{user?.name || 'No disponible'}</p>
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Fecha de Registro</label>
+                  <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{new Date(selectedPrescription.created_at).toLocaleString('es-ES')}</p>
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Estado</label>
+                  <div className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{getStatusBadge(selectedPrescription.status)}</div>
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Codigo Interno</label>
+                  <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{selectedPrescription.code}</p>
+                </div>
+              </div>
+
+              <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant space-y-sm">
+                <h4 className="text-sm font-semibold text-primary">Detalle de Medicamento</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+                  <div className="flex flex-col gap-xs sm:col-span-2">
+                    <label className="text-xs font-semibold text-on-surface-variant">Medicamento</label>
+                    {isEditingDetails ? (
+                      <select
+                        value={detailsForm.medicationId}
+                        onChange={(e) => setDetailsForm((prev) => ({ ...prev, medicationId: e.target.value }))}
+                        className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+                      >
+                        <option value="">-- Seleccione medicamento --</option>
+                        {medications.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.active_principle}) - Stock: {m.stock} {m.unit}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm">
+                        {selectedPrescription.items?.[0]?.medication_name || 'No disponible'} ({selectedPrescription.items?.[0]?.active_principle || 'N/A'})
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-xs">
+                    <label className="text-xs font-semibold text-on-surface-variant">Cantidad</label>
+                    {isEditingDetails ? (
+                      <input
+                        type="number"
+                        min="1"
+                        value={detailsForm.quantity}
+                        onChange={(e) => setDetailsForm((prev) => ({ ...prev, quantity: parseInt(e.target.value, 10) || 1 }))}
+                        className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+                      />
+                    ) : (
+                      <p className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm">{selectedPrescription.items?.[0]?.quantity_prescribed || 0} {selectedPrescription.items?.[0]?.unit || ''}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-xs">
+                    <label className="text-xs font-semibold text-on-surface-variant">Stock Actual</label>
+                    <p className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm">{selectedPrescription.items?.[0]?.current_stock ?? 0} {selectedPrescription.items?.[0]?.unit || ''}</p>
+                  </div>
+                  <div className="flex flex-col gap-xs sm:col-span-2">
+                    <label className="text-xs font-semibold text-on-surface-variant">Instrucciones</label>
+                    {isEditingDetails ? (
+                      <input
+                        type="text"
+                        value={detailsForm.instructions}
+                        onChange={(e) => setDetailsForm((prev) => ({ ...prev, instructions: e.target.value }))}
+                        className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+                      />
+                    ) : (
+                      <p className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm">{selectedPrescription.items?.[0]?.instructions || 'N/A'}</p>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            <div className="mt-md pt-md border-t border-outline-variant flex flex-wrap justify-end gap-sm">
+              {isEditingDetails ? (
+                <>
+                  <button
+                    onClick={() => setIsEditingDetails(false)}
+                    className="h-10 px-md rounded border border-outline-variant text-on-surface font-semibold text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveDetails}
+                    className="h-10 px-md rounded bg-primary text-on-primary font-semibold text-xs"
+                  >
+                    Guardar Cambios
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditingDetails(true)}
+                    className="h-10 px-md rounded border border-primary/40 text-primary font-semibold text-xs"
+                  >
+                    Editar Receta
+                  </button>
+                  <button
+                    onClick={handleDeletePrescription}
+                    className="h-10 px-md rounded bg-error/20 text-error border border-error/40 font-semibold text-xs"
+                  >
+                    Eliminar Receta
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
