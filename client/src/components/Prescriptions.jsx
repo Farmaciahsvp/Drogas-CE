@@ -15,6 +15,7 @@ export default function Prescriptions({ user }) {
 
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [successModal, setSuccessModal] = useState({ open: false, recipeNumber: '' });
 
   const loadData = async () => {
     setLoading(true);
@@ -75,8 +76,8 @@ export default function Prescriptions({ user }) {
         ]
       };
 
-      const response = await api.prescriptions.create(prescriptionData);
-      alert(`Receta fisica registrada con exito. Codigo: ${response.code}`);
+      await api.prescriptions.create(prescriptionData);
+      setSuccessModal({ open: true, recipeNumber: prescriptionNumber });
 
       setPrescriptionNumber('');
       setPatientId('');
@@ -248,6 +249,36 @@ export default function Prescriptions({ user }) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {successModal.open && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-md">
+          <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-md w-full p-lg shadow-2xl relative">
+            <button
+              onClick={() => setSuccessModal({ open: false, recipeNumber: '' })}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div className="border-b border-outline-variant pb-xs mb-md">
+              <h3 className="font-headline-md text-headline-md text-primary font-semibold">Receta Registrada</h3>
+            </div>
+            <div className="space-y-sm">
+              <p className="text-on-surface">Receta fisica registrada con exito.</p>
+              <p className="text-on-surface-variant">
+                Numero de receta: <strong className="text-primary">{successModal.recipeNumber}</strong>
+              </p>
+            </div>
+            <div className="flex justify-end pt-md mt-md border-t border-outline-variant">
+              <button
+                onClick={() => setSuccessModal({ open: false, recipeNumber: '' })}
+                className="h-10 px-md rounded bg-primary text-on-primary font-label-caps text-label-caps text-xs font-semibold"
+              >
+                Aceptar
+              </button>
             </div>
           </div>
         </div>
