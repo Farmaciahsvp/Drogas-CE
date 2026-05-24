@@ -5,6 +5,7 @@ const DASHBOARD_TIMEOUT_MS = 10000;
 const SESSION_CACHE_TTL_MS = 120000;
 const SESSION_CACHE_PREFIX = 'drogasce_cache_v1:';
 const WEEKLY_DISPENSE_WINDOW_DAYS = 90;
+const HISTORY_PAGE_SIZE = 100;
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
@@ -449,6 +450,27 @@ export const api = {
     }
   },
   prescriptions: {
+    getPage: async (status = '', { scope = 'recent', offset = 0, limit = HISTORY_PAGE_SIZE } = {}) => {
+      const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+      let query = supabase
+        .from('prescriptions')
+        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, created_by, profiles!prescriptions_created_by_fkey(name), prescription_items(quantity_dispensed, medications(name, active_principle, unit))')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (scope !== 'all') query = query.gte('created_at', sinceIso);
+      if (status) query = query.eq('status', status);
+      const { data, error } = await query;
+      if (error) throw new Error(error.message || 'Error al cargar recetas.');
+      const items = (data || []).map((p) => ({
+        ...p,
+        medication_code: p.prescription_items?.[0]?.medications?.name || '',
+        medication_name: p.prescription_items?.[0]?.medications?.active_principle || '',
+        medication_unit: p.prescription_items?.[0]?.medications?.unit || '',
+        quantity_dispensed: p.prescription_items?.[0]?.quantity_dispensed || 0,
+        pharmacist_name: p.profiles?.name || 'No disponible'
+      }));
+      return { items, nextOffset: offset + items.length, hasMore: items.length === limit };
+    },
     getAll: async (status = '', scope = 'recent') => {
       const cKey = `prescriptions:${status || 'all'}:${scope}`;
       const cached = readCache(cKey);
@@ -589,6 +611,59 @@ export const api = {
     }
   },
   transactions: {
+    getPage: async ({ scope = 'recent', offset = 0, limit = HISTORY_PAGE_SIZE } = {}) => {
+      const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+      let query = supabase
+        .from('transactions')
+        .select('id, medication_id, type, quantity, reference_type, reference_id, user_id, created_at, notes, medications(name, unit), profiles(name)')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (scope !== 'all') query = query.gte('created_at', sinceIso);
+      let { data, error } = await query;
+      if (error) {
+        let fallbackQuery = supabase
+          .from('transactions')
+          .select('id, medication_id, type, quantity, reference_type, reference_id, user_id, created_at, notes, medications(name, unit)')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        if (scope !== 'all') fallbackQuery = fallbackQuery.gte('created_at', sinceIso);
+        const retry = await fallbackQuery;
+        data = retry.data;
+        error = retry.error;
+      }
+      if (error) throw new Error(error.message || 'Error al cargar transacciones.');
+      const txRows = data || [];
+      const rxCodes = [...new Set(
+        txRows.filter((t) => t.reference_type === 'prescription' && t.reference_id).map((t) => t.reference_id)
+      )];
+      let rxMap = {};
+      if (rxCodes.length > 0) {
+        const { data: rxRows } = await supabase
+          .from('prescriptions')
+          .select('code, patient_name')
+          .in('code', rxCodes);
+        rxMap = (rxRows || []).reduce((acc, r) => {
+          acc[r.code] = String(r.patient_name || '').replace(/^Receta\s*/i, '').trim();
+          return acc;
+        }, {});
+      }
+      const items = txRows.map((t) => ({
+        id: t.id,
+        medication_id: t.medication_id,
+        type: t.type,
+        quantity: t.quantity,
+        reference_type: t.reference_type,
+        reference_id: t.reference_id,
+        user_id: t.user_id,
+        timestamp: t.created_at,
+        notes: t.notes,
+        reference_recipe_number: t.reference_type === 'prescription' ? (rxMap[t.reference_id] || null) : null,
+        medication_name: t.medications?.name,
+        unit: t.medications?.unit,
+        user_name: t.profiles?.name || 'Usuario'
+      }));
+      return { items, nextOffset: offset + items.length, hasMore: items.length === limit };
+    },
     getAll: async (scope = 'recent') => {
       const cKey = `transactions:${scope}`;
       const cached = readCache(cKey);
@@ -684,6 +759,31 @@ export const api = {
     }
   },
   replenish: {
+    getPage: async ({ scope = 'recent', offset = 0, limit = HISTORY_PAGE_SIZE } = {}) => {
+      const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+      let query = supabase
+        .from('replenishment_requests')
+        .select('id, medication_id, quantity, notes, user_id, status, created_at, medications(name, active_principle, unit), profiles!replenishment_requests_user_id_fkey(name)')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (scope !== 'all') query = query.gte('created_at', sinceIso);
+      const { data, error } = await query;
+      if (error) throw new Error(error.message || 'Error al cargar solicitudes de reposicion.');
+      const items = (data || []).map((r) => ({
+        id: r.id,
+        medication_id: r.medication_id,
+        quantity: r.quantity,
+        notes: r.notes,
+        user_id: r.user_id,
+        status: r.status,
+        created_at: r.created_at,
+        medication_name: r.medications?.name,
+        active_principle: r.medications?.active_principle,
+        unit: r.medications?.unit,
+        user_name: r.profiles?.name
+      }));
+      return { items, nextOffset: offset + items.length, hasMore: items.length === limit };
+    },
     getAll: async (scope = 'recent') => {
       const cKey = `replenish:${scope}`;
       const cached = readCache(cKey);
@@ -860,9 +960,7 @@ export const api = {
       await Promise.allSettled([
         api.dashboard.getStats(),
         api.inventory.getAll(),
-        api.prescriptions.getAll('', 'recent'),
-        api.transactions.getAll('recent'),
-        api.replenish.getAll('recent')
+        api.prescriptions.getPage('', { scope: 'recent', offset: 0, limit: 50 })
       ]);
     }
   }

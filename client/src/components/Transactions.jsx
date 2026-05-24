@@ -9,6 +9,8 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all'); // all, ingreso, egreso
   const [dataScope, setDataScope] = useState('recent');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   
   // Estado para el medicamento seleccionado para ver su historial específico
   const [selectedMed, setSelectedMed] = useState(null);
@@ -22,14 +24,16 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
     return tx.medication_name === med.name;
   };
 
-  const loadData = async () => {
+  const loadData = async (reset = true) => {
     setLoading(true);
     try {
-      const [txData, medData] = await Promise.all([
-        api.transactions.getAll(dataScope),
+      const [txPage, medData] = await Promise.all([
+        api.transactions.getPage({ scope: dataScope, offset: reset ? 0 : offset }),
         api.inventory.getAll()
       ]);
-      setTransactions(txData);
+      setTransactions((prev) => (reset ? txPage.items : [...prev, ...txPage.items]));
+      setOffset(txPage.nextOffset);
+      setHasMore(txPage.hasMore);
       setMedications(medData);
     } catch (err) {
       console.error('Error al cargar datos de kárdex:', err);
@@ -39,7 +43,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [dataScope]);
 
   const handlePrint = () => {
@@ -137,6 +141,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
 
           {/* GRID DE MEDICAMENTOS */}
           {filteredMedications.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-lg">
               {filteredMedications.map((med) => {
                 // Filtrar movimientos específicos de esta tarjeta para el conteo
@@ -189,6 +194,17 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
                 );
               })}
             </div>
+            {hasMore && (
+              <div className="flex justify-center mt-md">
+                <button
+                  onClick={() => loadData(false)}
+                  className="h-10 px-md rounded bg-surface-container-high border border-outline-variant text-on-surface font-semibold text-xs"
+                >
+                  Cargar más
+                </button>
+              </div>
+            )}
+            </>
           ) : (
             <div className="bg-surface-container rounded-xl border border-outline-variant p-xl text-center text-on-surface-variant">
               <span className="material-symbols-outlined text-4xl mb-2">find_in_page</span>

@@ -14,16 +14,20 @@ export default function ReplenishRequests({ user }) {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [dataScope, setDataScope] = useState('recent');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (reset = true) => {
     setLoading(true);
     setError('');
     try {
-      const [reqData, medData] = await Promise.all([
-        api.replenish.getAll(dataScope),
+      const [reqPage, medData] = await Promise.all([
+        api.replenish.getPage({ scope: dataScope, offset: reset ? 0 : offset }),
         api.inventory.getAll()
       ]);
-      setRequests(reqData);
+      setRequests((prev) => (reset ? reqPage.items : [...prev, ...reqPage.items]));
+      setOffset(reqPage.nextOffset);
+      setHasMore(reqPage.hasMore);
       setMedications(medData);
     } catch (err) {
       setError('Error al obtener datos del almacén.');
@@ -33,7 +37,7 @@ export default function ReplenishRequests({ user }) {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [dataScope]);
 
   const handleSubmit = async (e) => {
@@ -300,6 +304,16 @@ export default function ReplenishRequests({ user }) {
                     ))}
                   </tbody>
                 </table>
+                {hasMore && (
+                  <div className="flex justify-center p-md border-t border-outline-variant">
+                    <button
+                      onClick={() => loadData(false)}
+                      className="h-9 px-md rounded bg-surface-container-high border border-outline-variant text-on-surface font-semibold text-xs"
+                    >
+                      Cargar más
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-xl text-on-surface-variant italic">

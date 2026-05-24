@@ -31,17 +31,21 @@ export default function Prescriptions({ user }) {
   const [dataScope, setDataScope] = useState('recent');
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (reset = true) => {
     setLoading(true);
     setErrorMsg('');
     try {
-      const [medsData, prescData] = await Promise.all([
+      const [medsData, prescPage] = await Promise.all([
         api.inventory.getAll(),
-        api.prescriptions.getAll('', dataScope)
+        api.prescriptions.getPage('', { scope: dataScope, offset: reset ? 0 : offset })
       ]);
       setMedications(medsData);
-      setPrescriptions(prescData);
+      setPrescriptions((prev) => (reset ? prescPage.items : [...prev, ...prescPage.items]));
+      setOffset(prescPage.nextOffset);
+      setHasMore(prescPage.hasMore);
     } catch (error) {
       setErrorMsg('Error al cargar datos de recetas e inventario.');
     } finally {
@@ -50,7 +54,7 @@ export default function Prescriptions({ user }) {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [dataScope]);
 
   const handleSubmitPrescription = async (e) => {
@@ -369,6 +373,16 @@ export default function Prescriptions({ user }) {
                   </div>
                 </div>
               ))}
+              {hasMore && (
+                <div className="flex justify-center pt-sm">
+                  <button
+                    onClick={() => loadData(false)}
+                    className="h-9 px-md rounded bg-surface-container-high border border-outline-variant text-on-surface font-semibold text-xs"
+                  >
+                    Cargar más
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex-grow flex items-center justify-center text-on-surface-variant text-center">
