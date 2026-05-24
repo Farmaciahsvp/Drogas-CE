@@ -16,7 +16,7 @@ export default function Dashboard({ user, setActiveTab }) {
       const data = await api.dashboard.getStats();
       setStats(data);
     } catch (err) {
-      setError('Error al cargar mÃ©tricas del tablero.');
+      setError('Error al cargar métricas del tablero.');
     } finally {
       setLoading(false);
     }
@@ -55,13 +55,13 @@ export default function Dashboard({ user, setActiveTab }) {
     );
   }
 
-  // Encontrar el valor mÃ¡ximo de stock de categorÃ­a para escalar las barras
+  // Encontrar el valor máximo para escalar las barras
   const dispatchSeries = stats?.weeklyDispenseAverages?.series?.[dispatchFilter] || [];
   const dispatchMax = dispatchSeries.length > 0
     ? Math.max(...dispatchSeries.map((d) => d.avg))
     : 1;
 
-  // Mapa de iconos de transacciÃ³n recientes
+  // Mapa de iconos de transacción recientes
   const getTxIcon = (notes, unit) => {
     const text = (notes || '').toLowerCase() + (unit || '').toLowerCase();
     if (text.includes('ampolla') || text.includes('inyecc') || text.includes('vacuna')) {
@@ -115,7 +115,7 @@ export default function Dashboard({ user, setActiveTab }) {
           </div>
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalAmpollas || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-primary">PresentaciÃ³n ampolla</span>
+            <span className="font-body-sm text-body-sm text-primary">Presentación ampolla</span>
           </div>
         </div>
 
@@ -127,7 +127,7 @@ export default function Dashboard({ user, setActiveTab }) {
           </div>
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalTabletas || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-primary">PresentaciÃ³n tableta</span>
+            <span className="font-body-sm text-body-sm text-primary">Presentación tableta</span>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ export default function Dashboard({ user, setActiveTab }) {
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.lowStockAlerts || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
             <span className={`font-body-sm text-body-sm ${stats?.lowStockAlerts > 0 ? 'text-error font-semibold' : 'text-on-surface-variant'}`}>
-              {stats?.lowStockAlerts > 0 ? 'Requiere reabastecimiento crÃ­tico' : 'Todos los niveles normales'}
+              {stats?.lowStockAlerts > 0 ? 'Requiere reabastecimiento crítico' : 'Todos los niveles normales'}
             </span>
           </div>
         </div>
@@ -168,12 +168,12 @@ export default function Dashboard({ user, setActiveTab }) {
             <span className="font-label-caps text-label-caps text-on-surface-variant">Surtido Hoy</span>
             <span className="material-symbols-outlined text-secondary text-2xl">check_circle</span>
           </div>
-          {/* Calculamos recetas surtidas en base a egresos en transacciones recientes o ponemos un estÃ¡tico descriptivo */}
+          {/* Calculamos recetas surtidas en base a egresos en transacciones recientes */}
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">
             {stats?.recentTransactions?.filter(t => t.type === 'egreso').length || 0}
           </div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-secondary">Egresos registrados en bitÃ¡cora reciente</span>
+            <span className="font-body-sm text-body-sm text-secondary">Egresos registrados en bitácora reciente</span>
           </div>
         </div>
 
@@ -208,6 +208,9 @@ export default function Dashboard({ user, setActiveTab }) {
                 return (
                   <div className="flex-1 flex flex-col items-center gap-sm group min-w-[50px]" key={i}>
                     <div className="w-full flex flex-col-reverse justify-start h-[200px] relative">
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-data-mono text-data-mono text-on-surface-variant">
+                        {item.avg}
+                      </div>
                       <div
                         className="bg-primary rounded-t-lg w-full transition-all duration-300 group-hover:brightness-125 group-hover:scale-x-105"
                         style={{ height: `${Math.max(percentage, 10)}%` }}
@@ -277,8 +280,8 @@ export default function Dashboard({ user, setActiveTab }) {
       <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-sm">
         <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
           <div>
-            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Monitor de Inventario CrÃ­tico</h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant">Productos por debajo del stock mÃ­nimo de seguridad</p>
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Monitor de Inventario Crítico</h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">Productos por debajo del stock mínimo de seguridad</p>
           </div>
           <button 
             onClick={() => setActiveTab('inventory')}
@@ -295,9 +298,9 @@ export default function Dashboard({ user, setActiveTab }) {
                 <tr>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Medicamento / Item</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Stock Actual</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">MÃ­nimo Requerido</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Mínimo Requerido</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Estado</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant text-right">AcciÃ³n</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
@@ -339,7 +342,7 @@ export default function Dashboard({ user, setActiveTab }) {
         ) : (
           <div className="text-center p-xl text-on-surface-variant">
             <span className="material-symbols-outlined text-4xl text-secondary mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            <p className="font-body-lg">Â¡Felicidades! Todo el almacÃ©n cuenta con niveles de stock Ã³ptimos.</p>
+            <p className="font-body-lg">¡Felicidades! Todo el almacén cuenta con niveles de stock óptimos.</p>
           </div>
         )}
       </div>
