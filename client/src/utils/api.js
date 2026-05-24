@@ -76,6 +76,26 @@ const writeCache = (k, data) => {
     // ignore cache write errors
   }
 };
+const clearCacheByPrefix = (prefix) => {
+  try {
+    const fullPrefix = cacheKey(prefix);
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(fullPrefix)) keysToRemove.push(k);
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore cache clear errors
+  }
+};
+const invalidateOperationalCache = () => {
+  clearCacheByPrefix('dashboard:');
+  clearCacheByPrefix('inventory:');
+  clearCacheByPrefix('prescriptions:');
+  clearCacheByPrefix('transactions:');
+  clearCacheByPrefix('replenish:');
+};
 
 export const flushOfflineQueue = async () => {
   const queue = readOfflineQueue();
@@ -222,6 +242,7 @@ export const api = {
       try {
         const { data, error } = await supabase.from('medications').insert([payload]).select('id').single();
         if (error) throw new Error(error.message || 'Error al crear medicamento.');
+        invalidateOperationalCache();
         return data;
       } catch (err) {
         if (!fromReplay && isOfflineLikeError(err)) {
@@ -255,6 +276,7 @@ export const api = {
               user_id: uid,
               notes: notes || 'Ingreso manual de stock'
             }]);
+            invalidateOperationalCache();
             return { ok: true };
           }
         }
@@ -273,6 +295,7 @@ export const api = {
       try {
         const { data, error } = await supabase.from('medications').update(payload).eq('id', id).select('id').single();
         if (error) throw new Error(error.message || 'Error al actualizar medicamento.');
+        invalidateOperationalCache();
         return data;
       } catch (err) {
         if (!fromReplay && isOfflineLikeError(err)) {
@@ -325,6 +348,7 @@ export const api = {
         p_items: normalizedItems
       });
       if (error) throw new Error(error.message || 'No se pudo registrar la toma de inventario.');
+      invalidateOperationalCache();
       return data;
     }
   },
@@ -413,6 +437,7 @@ export const api = {
         const { error: itemsError } = await supabase.from('prescription_items').insert(rows);
         if (!itemsError) {
           await api.prescriptions.dispense(header.id);
+          invalidateOperationalCache();
           return { id: header.id, code: header.code };
         }
       }
@@ -428,6 +453,7 @@ export const api = {
         p_prescription_id: prescriptionId
       });
       if (error) throw new Error(error.message || 'No se pudo dispensar la receta.');
+      invalidateOperationalCache();
       return data;
     },
     update: async (prescriptionId, payload) => {
@@ -441,6 +467,7 @@ export const api = {
         p_instructions: payload.instructions || null
       });
       if (error) throw new Error(error.message || 'No se pudo actualizar la receta.');
+      invalidateOperationalCache();
       return data;
     },
     remove: async (prescriptionId) => {
@@ -448,6 +475,7 @@ export const api = {
         p_prescription_id: prescriptionId
       });
       if (error) throw new Error(error.message || 'No se pudo eliminar la receta.');
+      invalidateOperationalCache();
       return data;
     }
   },
@@ -574,6 +602,7 @@ export const api = {
       try {
         const { data, error } = await supabase.from('replenishment_requests').insert([payload]).select('id').single();
         if (error) throw new Error(error.message || 'Error al crear solicitud.');
+        invalidateOperationalCache();
         return data;
       } catch (err) {
         if (!fromReplay && isOfflineLikeError(err)) {
@@ -589,6 +618,7 @@ export const api = {
         p_decision: 'approved'
       });
       if (error) throw new Error(error.message || 'Error al aprobar solicitud.');
+      invalidateOperationalCache();
       return data;
     },
     reject: async (id) => {
@@ -597,6 +627,7 @@ export const api = {
         p_decision: 'rejected'
       });
       if (error) throw new Error(error.message || 'Error al rechazar solicitud.');
+      invalidateOperationalCache();
       return data;
     }
   },
