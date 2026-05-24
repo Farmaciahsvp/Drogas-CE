@@ -87,21 +87,33 @@ export default function Dashboard({ user, setActiveTab }) {
       </div>
 
       {/* KEY METRICS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-lg">
         
         {/* Metric 1 */}
         <div className="bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start mb-sm">
-            <span className="font-label-caps text-label-caps text-on-surface-variant">Existencia Global</span>
-            <span className="material-symbols-outlined text-primary text-2xl">layers</span>
+            <span className="font-label-caps text-label-caps text-on-surface-variant">Existencia Ampollas</span>
+            <span className="material-symbols-outlined text-primary text-2xl">vaccines</span>
           </div>
-          <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalStock || 0}</div>
+          <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalAmpollas || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-primary">{stats?.totalMedications} medicamentos registrados</span>
+            <span className="font-body-sm text-body-sm text-primary">Presentación ampolla</span>
           </div>
         </div>
 
         {/* Metric 2 */}
+        <div className="bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-sm">
+            <span className="font-label-caps text-label-caps text-on-surface-variant">Existencia Tabletas</span>
+            <span className="material-symbols-outlined text-primary text-2xl">pill</span>
+          </div>
+          <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalTabletas || 0}</div>
+          <div className="mt-xs flex items-center gap-xs">
+            <span className="font-body-sm text-body-sm text-primary">Presentación tableta</span>
+          </div>
+        </div>
+
+        {/* Metric 3 */}
         <div 
           onClick={() => stats?.lowStockAlerts > 0 && setActiveTab('inventory')}
           className={`bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm flex flex-col justify-between ${stats?.lowStockAlerts > 0 ? 'cursor-pointer hover:bg-surface-container-high' : ''}`}
@@ -118,7 +130,7 @@ export default function Dashboard({ user, setActiveTab }) {
           </div>
         </div>
 
-        {/* Metric 3 */}
+        {/* Metric 4 */}
         <div className="bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start mb-sm">
             <span className="font-label-caps text-label-caps text-on-surface-variant">Recetas Procesadas</span>
@@ -132,7 +144,7 @@ export default function Dashboard({ user, setActiveTab }) {
           </div>
         </div>
 
-        {/* Metric 4 */}
+        {/* Metric 5 */}
         <div className="bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start mb-sm">
             <span className="font-label-caps text-label-caps text-on-surface-variant">Surtido Hoy</span>

@@ -380,6 +380,12 @@ export const api = {
 
         const totalMedications = meds.length;
         const totalStock = meds.reduce((acc, m) => acc + (m.stock || 0), 0);
+        const totalAmpollas = meds
+          .filter((m) => (m.unit || '').toLowerCase() === 'ampollas')
+          .reduce((acc, m) => acc + (m.stock || 0), 0);
+        const totalTabletas = meds
+          .filter((m) => (m.unit || '').toLowerCase() === 'tabletas')
+          .reduce((acc, m) => acc + (m.stock || 0), 0);
         const lowStockAlerts = meds.filter((m) => (m.stock || 0) <= (m.min_stock || 0)).length;
         const pendingPrescriptions = prescs.filter((p) => p.status === 'pending').length;
 
@@ -399,6 +405,8 @@ export const api = {
         return {
           totalMedications,
           totalStock,
+          totalAmpollas,
+          totalTabletas,
           lowStockAlerts,
           pendingPrescriptions,
           recentTransactions: recentTx,
