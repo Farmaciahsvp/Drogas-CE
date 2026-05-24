@@ -12,6 +12,15 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
   // Estado para el medicamento seleccionado para ver su historial específico
   const [selectedMed, setSelectedMed] = useState(null);
 
+  const matchesMedication = (tx, med) => {
+    const txMedId = Number(tx.medication_id);
+    const medId = Number(med.id);
+    if (!Number.isNaN(txMedId) && !Number.isNaN(medId) && txMedId === medId) {
+      return true;
+    }
+    return tx.medication_name === med.name;
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -120,7 +129,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-lg">
               {filteredMedications.map((med) => {
                 // Filtrar movimientos específicos de esta tarjeta para el conteo
-                const medMvs = transactions.filter(t => t.medication_id === med.id || t.medication_name === med.name);
+                const medMvs = transactions.filter((t) => matchesMedication(t, med));
                 const medIngresos = medMvs.filter((t) => t.type === 'ingreso').length;
                 const medEgresos = medMvs.filter((t) => t.type === 'egreso').length;
                 const isLow = med.stock <= med.min_stock && med.stock > 0;
