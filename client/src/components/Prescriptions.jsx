@@ -7,12 +7,9 @@ export default function Prescriptions({ user }) {
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Captura simplificada
   const [prescriptionNumber, setPrescriptionNumber] = useState('');
   const [patientId, setPatientId] = useState('');
   const [dispenseImmediately, setDispenseImmediately] = useState(true);
-
-  const [draftItems, setDraftItems] = useState([]);
   const [selectedMedId, setSelectedMedId] = useState('');
   const [quantity, setQuantity] = useState(1);
 
@@ -39,48 +36,6 @@ export default function Prescriptions({ user }) {
     loadData();
   }, []);
 
-  const handleAddDraftItem = () => {
-    if (!selectedMedId) return;
-
-    const med = medications.find((m) => m.id === parseInt(selectedMedId));
-    if (!med) return;
-
-    if (quantity <= 0) {
-      alert('La cantidad debe ser mayor a 0');
-      return;
-    }
-
-    if (med.stock < quantity) {
-      alert(`Advertencia: No hay stock suficiente para surtir de inmediato (${quantity} solicitados, ${med.stock} disponibles).`);
-    }
-
-    const existingIndex = draftItems.findIndex((item) => item.medication_id === med.id);
-
-    if (existingIndex >= 0) {
-      const updated = [...draftItems];
-      updated[existingIndex].quantity_prescribed = quantity;
-      setDraftItems(updated);
-    } else {
-      setDraftItems([
-        ...draftItems,
-        {
-          medication_id: med.id,
-          name: med.name,
-          unit: med.unit,
-          quantity_prescribed: quantity,
-          instructions: 'Dispensacion segun receta fisica.'
-        }
-      ]);
-    }
-
-    setSelectedMedId('');
-    setQuantity(1);
-  };
-
-  const handleRemoveDraftItem = (medId) => {
-    setDraftItems(draftItems.filter((item) => item.medication_id !== medId));
-  };
-
   const handleSubmitPrescription = async (e) => {
     e.preventDefault();
 
@@ -89,8 +44,19 @@ export default function Prescriptions({ user }) {
       return;
     }
 
-    if (draftItems.length === 0) {
-      alert('Debe agregar al menos un medicamento a la receta.');
+    const med = medications.find((m) => m.id === parseInt(selectedMedId));
+    if (!med) {
+      alert('Seleccione un medicamento.');
+      return;
+    }
+
+    if (quantity <= 0) {
+      alert('La cantidad debe ser mayor a 0');
+      return;
+    }
+
+    if (med.stock < quantity) {
+      alert(`No hay stock suficiente (${quantity} solicitados, ${med.stock} disponibles).`);
       return;
     }
 
@@ -100,11 +66,13 @@ export default function Prescriptions({ user }) {
         patient_id: patientId,
         doctor_name: 'No especificado',
         dispenseImmediately,
-        items: draftItems.map((item) => ({
-          medication_id: item.medication_id,
-          quantity_prescribed: item.quantity_prescribed,
-          instructions: 'Dispensacion segun receta fisica.'
-        }))
+        items: [
+          {
+            medication_id: med.id,
+            quantity_prescribed: quantity,
+            instructions: 'Dispensacion segun receta fisica.'
+          }
+        ]
       };
 
       const response = await api.prescriptions.create(prescriptionData);
@@ -112,7 +80,8 @@ export default function Prescriptions({ user }) {
 
       setPrescriptionNumber('');
       setPatientId('');
-      setDraftItems([]);
+      setSelectedMedId('');
+      setQuantity(1);
       setDispenseImmediately(true);
 
       loadData();
@@ -143,6 +112,8 @@ export default function Prescriptions({ user }) {
         return <span className="text-xs uppercase font-bold">{status}</span>;
     }
   };
+
+  const selectedMedication = medications.find((m) => m.id === parseInt(selectedMedId));
 
   if (loading && medications.length === 0) {
     return (
@@ -200,35 +171,21 @@ export default function Prescriptions({ user }) {
                   <input type="number" min="1" className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} />
                 </div>
               </div>
-
-              <button type="button" onClick={handleAddDraftItem} className="w-full h-10 rounded bg-surface-variant hover:bg-surface-container-highest text-primary font-label-caps text-label-caps text-xs flex items-center justify-center gap-xs font-semibold border border-primary/20">
-                <span className="material-symbols-outlined text-sm">add</span>
-                Agregar a la receta
-              </button>
             </div>
 
             <div className="border-t border-dashed border-outline-variant pt-md">
               <h4 className="font-body-lg text-body-lg text-on-surface mb-sm font-semibold">Detalle de la receta</h4>
-              {draftItems.length > 0 ? (
-                <div className="space-y-xs">
-                  {draftItems.map((item) => (
-                    <div key={item.medication_id} className="bg-surface-container-low p-sm rounded border border-outline-variant flex justify-between items-center hover:bg-surface-variant/20 transition-all">
-                      <div>
-                        <p className="font-body-lg text-body-lg text-on-surface font-semibold">{item.name}</p>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant">Cantidad: <strong className="text-primary">{item.quantity_prescribed} {item.unit}</strong></p>
-                      </div>
-                      <button type="button" onClick={() => handleRemoveDraftItem(item.medication_id)} className="text-error hover:bg-error-container/10 p-2 rounded-full transition-all">
-                        <span className="material-symbols-outlined text-lg">delete</span>
-                      </button>
-                    </div>
-                  ))}
+              {selectedMedication ? (
+                <div className="bg-surface-container-low p-sm rounded border border-outline-variant">
+                  <p className="font-body-lg text-body-lg text-on-surface font-semibold">{selectedMedication.name}</p>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">Cantidad: <strong className="text-primary">{quantity} {selectedMedication.unit}</strong></p>
                 </div>
               ) : (
-                <p className="text-sm text-on-surface-variant font-body-sm italic">Aun no ha agregado medicamentos a la receta actual.</p>
+                <p className="text-sm text-on-surface-variant font-body-sm italic">Seleccione un medicamento para continuar.</p>
               )}
             </div>
 
-            <button type="submit" disabled={draftItems.length === 0} className="w-full h-12 rounded bg-primary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center justify-center font-bold tracking-wider mt-md">
+            <button type="submit" disabled={!selectedMedId || quantity <= 0} className="w-full h-12 rounded bg-primary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center justify-center font-bold tracking-wider mt-md disabled:opacity-50 disabled:cursor-not-allowed">
               REGISTRAR Y DISPENSAR STOCK
             </button>
           </form>
@@ -239,7 +196,6 @@ export default function Prescriptions({ user }) {
             <span className="material-symbols-outlined text-on-surface-variant text-2xl">history</span>
             <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Historial de Captura</h3>
           </div>
-
           {prescriptions.length > 0 ? (
             <div className="space-y-sm flex-1 overflow-y-auto pr-sm scrollbar-thin">
               {prescriptions.map((presc) => (
