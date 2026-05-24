@@ -195,7 +195,7 @@ export default function Prescriptions({ user }) {
         <div className="bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm flex flex-col h-[650px]">
           <div className="flex items-center gap-sm border-b border-outline-variant pb-xs mb-md">
             <span className="material-symbols-outlined text-on-surface-variant text-2xl">history</span>
-            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Historial de Captura</h3>
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Historial de Rebajos</h3>
           </div>
           {prescriptions.length > 0 ? (
             <div className="space-y-sm flex-1 overflow-y-auto pr-sm scrollbar-thin">
