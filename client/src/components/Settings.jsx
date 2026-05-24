@@ -54,10 +54,18 @@ export default function Settings({ user }) {
   const loadLogs = async () => {
     setLogError('');
     try {
-      const data = await api.transactions.getAll();
-      setLogs(data || []);
+      const data = diagnostics.getApiCalls();
+      const mapped = (data || []).map((d, idx) => ({
+        id: `${d.at || 'n/a'}-${idx}`,
+        type: d.ok ? 'ok' : 'error',
+        timestamp: d.at,
+        operation: d.scope,
+        duration_ms: d.ms,
+        details: d.error || 'Operación completada correctamente'
+      }));
+      setLogs(mapped.reverse());
     } catch (err) {
-      setLogError(err.message || 'Error al obtener logs del sistema.');
+      setLogError('Error al obtener logs técnicos.');
     }
   };
 
@@ -155,7 +163,7 @@ export default function Settings({ user }) {
 
   const filteredLogs = logs.filter((log) => {
     const matchesType = logTypeFilter === 'all' || log.type === logTypeFilter;
-    const text = `${log.medication_name || ''} ${log.user_name || ''} ${log.notes || ''}`.toLowerCase();
+    const text = `${log.operation || ''} ${log.details || ''}`.toLowerCase();
     const matchesSearch = !logSearch || text.includes(logSearch.toLowerCase());
 
     const ts = new Date(log.timestamp);
@@ -175,10 +183,10 @@ export default function Settings({ user }) {
 
     filteredLogs.forEach((log) => {
       const sign = log.type === 'ingreso' ? '+' : '-';
-      lines.push(`[${new Date(log.timestamp).toLocaleString('es-ES')}] ${log.type.toUpperCase()} ${sign}${log.quantity}`);
-      lines.push(`Medicamento: ${log.medication_name || '-'} (${log.unit || '-'})`);
-      lines.push(`Usuario: ${log.user_name || '-'} | Ref: ${log.reference_type || '-'} ${log.reference_id || ''}`);
-      lines.push(`Notas: ${log.notes || '-'}`);
+    lines.push(`[${new Date(log.timestamp).toLocaleString('es-ES')}] ${log.type.toUpperCase()}`);
+    lines.push(`Operación: ${log.operation || '-'}`);
+    lines.push(`Duración: ${log.duration_ms ?? '-'} ms`);
+    lines.push(`Detalle: ${log.details || '-'}`);
       lines.push('-'.repeat(90));
     });
 
@@ -530,10 +538,10 @@ export default function Settings({ user }) {
           <input type="date" value={logToDate} onChange={(e) => setLogToDate(e.target.value)} className="bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none" />
           <select value={logTypeFilter} onChange={(e) => setLogTypeFilter(e.target.value)} className="bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none">
             <option value="all">Todos</option>
-            <option value="ingreso">Ingresos</option>
-            <option value="egreso">Egresos</option>
+            <option value="ok">Exitosas</option>
+            <option value="error">Errores</option>
           </select>
-          <input type="text" placeholder="Buscar por usuario/nota/medicamento" value={logSearch} onChange={(e) => setLogSearch(e.target.value)} className="md:col-span-2 bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none" />
+          <input type="text" placeholder="Buscar por operación/detalle técnico" value={logSearch} onChange={(e) => setLogSearch(e.target.value)} className="md:col-span-2 bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none" />
         </div>
 
         <div className="flex items-center justify-between">
@@ -552,12 +560,13 @@ export default function Settings({ user }) {
           ) : (
             filteredLogs.slice(0, 100).map((log) => (
               <div key={log.id} className="bg-surface-container-low p-sm rounded border border-outline-variant text-xs">
-                <p className="font-semibold text-on-surface">
-                  [{new Date(log.timestamp).toLocaleString('es-ES')}] {log.type.toUpperCase()} {log.quantity} {log.unit || ''}
+                <p className={`font-semibold ${log.type === 'error' ? 'text-error' : 'text-secondary'}`}>
+                  [{new Date(log.timestamp).toLocaleString('es-ES')}] {log.type.toUpperCase()}
                 </p>
-                <p className="text-on-surface-variant">
-                  {log.medication_name || '-'} | {log.user_name || '-'} | {log.notes || '-'}
+                <p className="text-on-surface">
+                  {log.operation || '-'} | {log.duration_ms ?? '-'} ms
                 </p>
+                <p className="text-on-surface-variant">{log.details || '-'}</p>
               </div>
             ))
           )}
