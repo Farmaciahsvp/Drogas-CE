@@ -217,7 +217,7 @@ export const api = {
       if (!uid) throw new Error('Sesion invalida.');
 
       const code = `REC-${Math.floor(100000 + Math.random() * 900000)}`;
-      const status = dispenseImmediately ? 'dispensed' : 'pending';
+      const status = 'pending';
 
       const { data: header, error: headerError } = await supabase
         .from('prescriptions')
@@ -229,14 +229,12 @@ export const api = {
           prescription_id: header.id,
           medication_id: item.medication_id,
           quantity_prescribed: item.quantity_prescribed,
-          quantity_dispensed: dispenseImmediately ? item.quantity_prescribed : 0,
+          quantity_dispensed: 0,
           instructions: item.instructions || 'Tomar segun indicaciones.'
         }));
         const { error: itemsError } = await supabase.from('prescription_items').insert(rows);
         if (!itemsError) {
-          if (dispenseImmediately) {
-            await api.prescriptions.dispense(header.id);
-          }
+          await api.prescriptions.dispense(header.id);
           return { id: header.id, code: header.code };
         }
       }
