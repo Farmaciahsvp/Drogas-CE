@@ -16,6 +16,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
   const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isAuditDetailsModalOpen, setIsAuditDetailsModalOpen] = useState(false);
 
   // Estados de formularios
   const [selectedMed, setSelectedMed] = useState(null);
@@ -41,6 +42,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     notes: '',
     observedByMedication: {}
   });
+  const [selectedAudit, setSelectedAudit] = useState(null);
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -173,6 +175,11 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const handleOpenAuditDetails = (audit) => {
+    setSelectedAudit(audit);
+    setIsAuditDetailsModalOpen(true);
   };
 
   // Combinar el término de búsqueda global con el local
@@ -384,7 +391,12 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
         ) : (
           <div className="space-y-sm max-h-[320px] overflow-y-auto pr-sm scrollbar-thin">
             {inventoryAudits.map((audit) => (
-              <div key={audit.id} className="bg-surface-container-low border border-outline-variant rounded-lg p-sm">
+              <button
+                key={audit.id}
+                type="button"
+                onClick={() => handleOpenAuditDetails(audit)}
+                className="w-full text-left bg-surface-container-low border border-outline-variant rounded-lg p-sm hover:bg-surface-variant/30 transition-colors"
+              >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-on-surface">Toma #{audit.id}</p>
                   <p className="text-xs text-on-surface-variant">{new Date(audit.created_at).toLocaleString('es-CR')}</p>
@@ -394,7 +406,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                 <div className="mt-2 text-xs text-on-surface-variant">
                   {audit.items.length} medicamentos revisados
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -478,6 +490,61 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isAuditDetailsModalOpen && selectedAudit && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-md">
+          <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-5xl w-full p-lg shadow-2xl relative">
+            <button
+              onClick={() => setIsAuditDetailsModalOpen(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div className="border-b border-outline-variant pb-xs mb-md">
+              <h3 className="font-headline-md text-headline-md text-primary font-semibold">
+                Detalle de Toma #{selectedAudit.id}
+              </h3>
+              <p className="text-sm text-on-surface-variant">
+                {new Date(selectedAudit.created_at).toLocaleString('es-CR')} | Farmacéutico: {selectedAudit.pharmacist_name}
+              </p>
+              {selectedAudit.notes && (
+                <p className="text-sm text-on-surface-variant">Notas: {selectedAudit.notes}</p>
+              )}
+            </div>
+
+            <div className="bg-surface-container-low border border-outline-variant rounded-lg overflow-hidden max-h-[460px] overflow-y-auto">
+              <table className="w-full text-center border-collapse">
+                <thead className="bg-surface-container-high/40 border-b border-outline-variant sticky top-0">
+                  <tr>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">Código</th>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">Principio Activo</th>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">Sistema</th>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">Observado</th>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">Diferencia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
+                  {selectedAudit.items.map((item) => {
+                    const isUp = item.difference > 0;
+                    const isDown = item.difference < 0;
+                    return (
+                      <tr key={item.id}>
+                        <td className="px-md py-sm font-semibold">{item.medication_code}</td>
+                        <td className="px-md py-sm text-on-surface-variant">{item.medication_name}</td>
+                        <td className="px-md py-sm">{item.expected_stock} {item.unit}</td>
+                        <td className="px-md py-sm">{item.observed_stock} {item.unit}</td>
+                        <td className={`px-md py-sm font-semibold ${isUp ? 'text-secondary' : isDown ? 'text-error' : 'text-on-surface-variant'}`}>
+                          {item.difference > 0 ? '+' : ''}{item.difference} {item.unit}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
