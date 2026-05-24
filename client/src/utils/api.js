@@ -383,7 +383,7 @@ export const api = {
       const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
       let query = supabase
         .from('prescriptions')
-        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, prescription_items(quantity_dispensed, medications(name, active_principle, unit))')
+        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, created_by, profiles!prescriptions_created_by_fkey(name), prescription_items(quantity_dispensed, medications(name, active_principle, unit))')
         .order('created_at', { ascending: false });
       if (scope !== 'all') query = query.gte('created_at', sinceIso);
       if (status) query = query.eq('status', status);
@@ -394,7 +394,8 @@ export const api = {
         medication_code: p.prescription_items?.[0]?.medications?.name || '',
         medication_name: p.prescription_items?.[0]?.medications?.active_principle || '',
         medication_unit: p.prescription_items?.[0]?.medications?.unit || '',
-        quantity_dispensed: p.prescription_items?.[0]?.quantity_dispensed || 0
+        quantity_dispensed: p.prescription_items?.[0]?.quantity_dispensed || 0,
+        pharmacist_name: p.profiles?.name || 'No disponible'
       }));
       writeCache(cKey, mapped);
       return mapped;
@@ -402,7 +403,7 @@ export const api = {
     getByCode: async (code) => {
       const { data: presc, error: prescError } = await supabase
         .from('prescriptions')
-        .select('id, code, patient_name, patient_id, doctor_name, status, created_at')
+        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, created_by, profiles!prescriptions_created_by_fkey(name)')
         .eq('code', code)
         .single();
       if (!prescError) {
@@ -410,7 +411,13 @@ export const api = {
           .from('prescription_items')
           .select('id, medication_id, quantity_prescribed, quantity_dispensed, instructions, medications(name, active_principle, unit, stock)')
           .eq('prescription_id', presc.id);
-        if (!itemsError) return mapPrescriptionWithItems(presc, items || []);
+        if (!itemsError) {
+          const mapped = mapPrescriptionWithItems(presc, items || []);
+          return {
+            ...mapped,
+            pharmacist_name: presc.profiles?.name || 'No disponible'
+          };
+        }
       }
       throw new Error('No se pudo cargar el detalle de receta desde Supabase.');
     },

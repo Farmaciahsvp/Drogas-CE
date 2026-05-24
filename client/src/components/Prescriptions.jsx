@@ -337,7 +337,7 @@ export default function Prescriptions({ user }) {
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Nombre: {presc.medication_name || 'No disponible'}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Cantidad rebajada: {presc.quantity_dispensed || 0} {presc.medication_unit || ''}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">DNI: {presc.patient_id}</p>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Farmacéutico: {user?.name || 'No disponible'}</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Farmacéutico: {presc.pharmacist_name || 'No disponible'}</p>
                   </div>
                   <div className="flex justify-between items-center border-t border-outline-variant/40 pt-1 mt-1 text-[11px] text-on-surface-variant font-label-caps">
                     <span>{new Date(presc.created_at).toLocaleDateString('es-ES')}</span>
@@ -397,7 +397,7 @@ export default function Prescriptions({ user }) {
                 </div>
                 <div className="flex flex-col gap-xs">
                   <label className="text-xs font-semibold text-on-surface-variant">Farmaceutico</label>
-                  <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{user?.name || 'No disponible'}</p>
+                  <p className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm">{selectedPrescription?.pharmacist_name || 'No disponible'}</p>
                 </div>
                 <div className="flex flex-col gap-xs">
                   <label className="text-xs font-semibold text-on-surface-variant">Fecha de Registro</label>
