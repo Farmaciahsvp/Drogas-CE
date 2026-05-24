@@ -209,6 +209,7 @@ export default function Prescriptions({ user }) {
                   <div>
                     <p className="font-body-lg text-body-lg text-on-surface font-semibold truncate leading-tight">Medicamento: {presc.medication_code || 'No disponible'}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Nombre: {presc.medication_name || 'No disponible'}</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Cantidad rebajada: {presc.quantity_dispensed || 0} {presc.medication_unit || ''}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">DNI: {presc.patient_id}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Farmacéutico: {user?.name || 'No disponible'}</p>
                   </div>

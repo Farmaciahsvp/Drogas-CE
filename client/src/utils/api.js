@@ -261,7 +261,7 @@ export const api = {
     getAll: async (status = '') => {
       let query = supabase
         .from('prescriptions')
-        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, prescription_items(medications(name, active_principle))')
+        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, prescription_items(quantity_dispensed, medications(name, active_principle, unit))')
         .order('created_at', { ascending: false });
       if (status) query = query.eq('status', status);
       const { data, error } = await query;
@@ -269,7 +269,9 @@ export const api = {
       return (data || []).map((p) => ({
         ...p,
         medication_code: p.prescription_items?.[0]?.medications?.name || '',
-        medication_name: p.prescription_items?.[0]?.medications?.active_principle || ''
+        medication_name: p.prescription_items?.[0]?.medications?.active_principle || '',
+        medication_unit: p.prescription_items?.[0]?.medications?.unit || '',
+        quantity_dispensed: p.prescription_items?.[0]?.quantity_dispensed || 0
       }));
     },
     getByCode: async (code) => {
