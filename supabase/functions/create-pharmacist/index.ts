@@ -77,9 +77,26 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    if (String(password).length < 8) {
+      return new Response(JSON.stringify({ error: 'La contrasena debe tener al menos 8 caracteres.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     const email = isEmailLogin ? rawUsername : `${normalizedUsername}@drogasce.local`;
 
     const cleanName = String(name).trim();
+    const { data: usernameInUse } = await adminClient
+      .from('profiles')
+      .select('id')
+      .eq('username', normalizedUsername)
+      .limit(1);
+    if ((usernameInUse || []).length > 0) {
+      return new Response(JSON.stringify({ error: 'El nombre de usuario ya existe.' }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,

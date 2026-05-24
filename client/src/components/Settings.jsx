@@ -74,6 +74,25 @@ export default function Settings({ user }) {
       setPharmError('Todos los campos son obligatorios.');
       return;
     }
+    const usernameValue = pharmForm.username.trim().toLowerCase();
+    const isEmail = usernameValue.includes('@');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const usernameRegex = /^[a-z0-9._-]{3,}$/;
+    if (isEmail && !emailRegex.test(usernameValue)) {
+      setPharmError('El correo no tiene un formato valido.');
+      return;
+    }
+    if (!isEmail && !usernameRegex.test(usernameValue)) {
+      setPharmError('El usuario debe tener minimo 3 caracteres y solo letras, numeros, punto, guion o guion bajo.');
+      return;
+    }
+    const hasUpper = /[A-Z]/.test(pharmForm.password);
+    const hasLower = /[a-z]/.test(pharmForm.password);
+    const hasNumber = /[0-9]/.test(pharmForm.password);
+    if (pharmForm.password.length < 8 || !hasUpper || !hasLower || !hasNumber) {
+      setPharmError('La contrasena debe tener minimo 8 caracteres, mayuscula, minuscula y numero.');
+      return;
+    }
 
     try {
       const payload = {
@@ -230,7 +249,7 @@ export default function Settings({ user }) {
                     type="password"
                     required
                     className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                    placeholder="Min. 4 caracteres"
+                    placeholder="Min. 8, con mayúscula, minúscula y número"
                     value={pharmForm.password}
                     onChange={(e) => setPharmForm({ ...pharmForm, password: e.target.value })}
                   />
