@@ -6,6 +6,7 @@ export default function Dashboard({ user, setActiveTab }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -22,6 +23,17 @@ export default function Dashboard({ user, setActiveTab }) {
 
   useEffect(() => {
     fetchStats();
+  }, []);
+
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
   }, []);
 
   if (loading) {
@@ -67,6 +79,10 @@ export default function Dashboard({ user, setActiveTab }) {
         <div>
           <h2 className="font-headline-md text-headline-md text-on-surface">Resumen de Operaciones</h2>
           <p className="font-body-sm text-body-sm text-on-surface-variant">Estado en tiempo real del inventario y recetas de la farmacia</p>
+          <div className="mt-xs flex items-center gap-xs">
+            <span className={`inline-block w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-secondary' : 'bg-error'}`}></span>
+            <span className="text-[11px] text-on-surface-variant">{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
         </div>
         <div className="flex gap-md w-full sm:w-auto">
           <button 
