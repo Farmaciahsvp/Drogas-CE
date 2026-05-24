@@ -362,7 +362,7 @@ export const api = {
       const [medRes, prescRes, txRes] = await Promise.all([
         supabase.from('medications').select('id, name, active_principle, category, stock, min_stock, unit'),
         supabase.from('prescriptions').select('id, status'),
-        supabase.from('transactions').select('id, type, quantity, created_at, medications(name, unit), profiles(name), notes').order('created_at', { ascending: false }).limit(5)
+        supabase.from('transactions').select('id, type, quantity, created_at, medications(name, active_principle, unit), profiles(name), notes').order('created_at', { ascending: false }).limit(5)
       ]);
       if (!medRes.error && !prescRes.error && !txRes.error) {
         const meds = medRes.data || [];
@@ -372,7 +372,7 @@ export const api = {
           type: t.type,
           quantity: t.quantity,
           timestamp: t.created_at,
-          medication_name: t.medications?.name,
+          medication_name: t.medications?.active_principle || t.medications?.name,
           unit: t.medications?.unit,
           user_name: t.profiles?.name,
           notes: t.notes
