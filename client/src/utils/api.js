@@ -181,12 +181,15 @@ export const api = {
     getAll: async (status = '') => {
       let query = supabase
         .from('prescriptions')
-        .select('id, code, patient_name, patient_id, doctor_name, status, created_at')
+        .select('id, code, patient_name, patient_id, doctor_name, status, created_at, prescription_items(medications(name))')
         .order('created_at', { ascending: false });
       if (status) query = query.eq('status', status);
       const { data, error } = await query;
       if (error) throw new Error(error.message || 'Error al cargar recetas.');
-      return data;
+      return (data || []).map((p) => ({
+        ...p,
+        medication_name: p.prescription_items?.[0]?.medications?.name || ''
+      }));
     },
     getByCode: async (code) => {
       const { data: presc, error: prescError } = await supabase

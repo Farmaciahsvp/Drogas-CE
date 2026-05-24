@@ -114,6 +114,7 @@ export default function Prescriptions({ user }) {
   };
 
   const selectedMedication = medications.find((m) => m.id === parseInt(selectedMedId));
+  const formatRecipeNumber = (patientName = '') => patientName.replace(/^Receta\s*/i, '').trim();
 
   if (loading && medications.length === 0) {
     return (
@@ -201,13 +202,13 @@ export default function Prescriptions({ user }) {
               {prescriptions.map((presc) => (
                 <div key={presc.id} className="bg-surface-container-low p-sm rounded border border-outline-variant flex flex-col gap-xs hover:bg-surface-variant/30 transition-all">
                   <div className="flex justify-between items-center">
-                    <span className="font-data-mono text-data-mono text-primary font-bold text-sm">{presc.code}</span>
+                    <span className="font-data-mono text-data-mono text-primary font-bold text-sm">{formatRecipeNumber(presc.patient_name)}</span>
                     {getStatusBadge(presc.status)}
                   </div>
                   <div>
-                    <p className="font-body-lg text-body-lg text-on-surface font-semibold truncate leading-tight">{presc.patient_name}</p>
+                    <p className="font-body-lg text-body-lg text-on-surface font-semibold truncate leading-tight">Medicamento: {presc.medication_name || 'No disponible'}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">DNI: {presc.patient_id}</p>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Medico: {presc.doctor_name}</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Farmacéutico: {user?.name || 'No disponible'}</p>
                   </div>
                   <div className="flex justify-between items-center border-t border-outline-variant/40 pt-1 mt-1 text-[11px] text-on-surface-variant font-label-caps">
                     <span>{new Date(presc.created_at).toLocaleDateString('es-ES')}</span>
