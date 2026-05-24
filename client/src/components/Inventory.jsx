@@ -243,7 +243,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
       <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-sm">
         {filteredMedications.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-center border-collapse">
               <thead className="bg-surface-container-high/40 border-b border-outline-variant">
                 <tr>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Código del Medicamento</th>
@@ -251,7 +251,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Categoría</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Existencia</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Mínimo</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant text-right">Acciones</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
@@ -278,8 +278,8 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                       <td className="px-lg py-md font-data-mono text-data-mono text-on-surface-variant">
                         {med.min_stock} {med.unit}
                       </td>
-                      <td className="px-lg py-md text-right">
-                        <div className="flex gap-sm justify-end">
+                      <td className="px-lg py-md text-center">
+                        <div className="flex gap-sm justify-center">
                           {(user.role === 'admin' || user.role === 'farmaceutico') && (
                             <button 
                               onClick={() => handleOpenRefill(med)}
