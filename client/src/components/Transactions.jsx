@@ -121,6 +121,8 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
               {filteredMedications.map((med) => {
                 // Filtrar movimientos específicos de esta tarjeta para el conteo
                 const medMvs = transactions.filter(t => t.medication_id === med.id || t.medication_name === med.name);
+                const medIngresos = medMvs.filter((t) => t.type === 'ingreso').length;
+                const medEgresos = medMvs.filter((t) => t.type === 'egreso').length;
                 const isLow = med.stock <= med.min_stock && med.stock > 0;
                 const isOut = med.stock === 0;
 
@@ -159,6 +161,8 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
                       <div className="text-right">
                         <p className="text-[9px] text-on-surface-variant uppercase font-bold">MOVIMIENTOS</p>
                         <p className="font-bold text-on-surface font-data-mono">{medMvs.length} logs</p>
+                        <p className="text-[10px] text-primary font-semibold">Ingresos: {medIngresos}</p>
+                        <p className="text-[10px] text-secondary font-semibold">Egresos: {medEgresos}</p>
                       </div>
                     </div>
                   </div>
