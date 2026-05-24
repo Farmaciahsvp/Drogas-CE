@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { RefreshCw } from 'lucide-react';
 
@@ -25,11 +25,12 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
   const [medForm, setMedForm] = useState({
     name: '',
     active_principle: '',
-    category: 'Psicotrópico',
+    category: 'PsicotrÃ³pico',
     stock: 0,
+    initial_stock: 0,
     unit: 'Tabletas',
     min_stock: 10,
-    shelf_location: 'Almacén General'
+    shelf_location: 'AlmacÃ©n General'
   });
 
   // Reabastecer stock
@@ -67,11 +68,12 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     setMedForm({
       name: '',
       active_principle: '',
-      category: 'Psicotrópico',
+      category: 'PsicotrÃ³pico',
       stock: 0,
+      initial_stock: 0,
       unit: 'Tabletas',
       min_stock: 10,
-      shelf_location: 'Almacén General'
+      shelf_location: 'AlmacÃ©n General'
     });
     setIsAddModalOpen(true);
   };
@@ -105,13 +107,14 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
       active_principle: med.active_principle,
       category: med.category,
       unit: med.unit,
+      initial_stock: Number(med.initial_stock ?? med.stock ?? 0),
       min_stock: med.min_stock,
-      shelf_location: med.shelf_location || 'Almacén General'
+      shelf_location: med.shelf_location || 'AlmacÃ©n General'
     });
     setIsEditModalOpen(true);
   };
 
-  // Envíos de formulario
+  // EnvÃ­os de formulario
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -126,14 +129,14 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
   const handleRefillSubmit = async (e) => {
     e.preventDefault();
     if (!refillForm.quantity || refillForm.quantity <= 0) {
-      alert('Por favor ingrese una cantidad válida mayor a 0');
+      alert('Por favor ingrese una cantidad vÃ¡lida mayor a 0');
       return;
     }
     try {
       await api.inventory.refill(
         refillForm.medication_id,
         parseInt(refillForm.quantity),
-        refillForm.notes || 'Ingreso de reabastecimiento en almacén'
+        refillForm.notes || 'Ingreso de reabastecimiento en almacÃ©n'
       );
       setIsRefillModalOpen(false);
       fetchInventory();
@@ -182,7 +185,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     setIsAuditDetailsModalOpen(true);
   };
 
-  // Combinar el término de búsqueda global con el local
+  // Combinar el tÃ©rmino de bÃºsqueda global con el local
   const activeSearch = globalSearchTerm || localSearchTerm;
 
   // Filtrado de medicamentos
@@ -204,7 +207,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     return matchesSearch && matchesCategory && matchesStock;
   });
 
-  // Lista única de categorías para el filtro
+  // Lista Ãºnica de categorÃ­as para el filtro
   const categories = [...new Set(medications.map((m) => m.category))];
 
   if (loading && medications.length === 0) {
@@ -222,8 +225,8 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
       {/* PAGE HEADER */}
       <div className="flex justify-between items-end gap-md">
         <div>
-          <h2 className="font-headline-md text-headline-md text-on-surface">Inventario Farmacéutico</h2>
-          <p className="font-body-sm text-body-sm text-on-surface-variant">Catálogo completo de medicamentos y existencias en almacén</p>
+          <h2 className="font-headline-md text-headline-md text-on-surface">Inventario FarmacÃ©utico</h2>
+          <p className="font-body-sm text-body-sm text-on-surface-variant">CatÃ¡logo completo de medicamentos y existencias en almacÃ©n</p>
         </div>
         {user.role === 'admin' && (
           <div className="flex items-center gap-sm">
@@ -265,7 +268,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
       <div className="bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm space-y-md">
         <div className="flex flex-col md:flex-row gap-md items-center justify-between">
           
-          {/* Input local (si no se usa la barra de búsqueda superior) */}
+          {/* Input local (si no se usa la barra de bÃºsqueda superior) */}
           <div className="relative w-full md:w-96">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
             <input
@@ -274,10 +277,10 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
               placeholder="Buscar localmente en tabla..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              disabled={!!globalSearchTerm} // Deshabilitado si hay búsqueda global activa
+              disabled={!!globalSearchTerm} // Deshabilitado si hay bÃºsqueda global activa
             />
             {globalSearchTerm && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-semibold">Búsqueda Global</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-semibold">BÃºsqueda Global</span>
             )}
           </div>
 
@@ -288,7 +291,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
-              <option value="">Todas las Categorías</option>
+              <option value="">Todas las CategorÃ­as</option>
               {categories.map((cat, i) => (
                 <option key={i} value={cat}>{cat}</option>
               ))}
@@ -300,7 +303,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
               onChange={(e) => setStockFilter(e.target.value)}
             >
               <option value="all">Todo el Inventario</option>
-              <option value="low">Stock Crítico</option>
+              <option value="low">Stock CrÃ­tico</option>
               <option value="out">Sin Existencias</option>
             </select>
           </div>
@@ -315,11 +318,11 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
             <table className="w-full text-center border-collapse">
               <thead className="bg-surface-container-high/40 border-b border-outline-variant">
                 <tr>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Código del Medicamento</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">CÃ³digo del Medicamento</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Principio Activo</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Categoría</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">CategorÃ­a</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Existencia</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Mínimo</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">MÃ­nimo</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Acciones</th>
                 </tr>
               </thead>
@@ -383,7 +386,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
 
       <div className="bg-surface-container rounded-xl border border-outline-variant shadow-sm p-md space-y-sm">
         <div className="flex items-center justify-between border-b border-outline-variant pb-xs">
-          <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Histórico de Tomas de Inventario</h3>
+          <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">HistÃ³rico de Tomas de Inventario</h3>
           <span className="text-xs text-on-surface-variant">{inventoryAudits.length} tomas registradas</span>
         </div>
         {inventoryAudits.length === 0 ? (
@@ -401,7 +404,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                   <p className="font-semibold text-on-surface">Toma #{audit.id}</p>
                   <p className="text-xs text-on-surface-variant">{new Date(audit.created_at).toLocaleString('es-CR')}</p>
                 </div>
-                <p className="text-sm text-on-surface-variant">Farmacéutico: {audit.pharmacist_name}</p>
+                <p className="text-sm text-on-surface-variant">FarmacÃ©utico: {audit.pharmacist_name}</p>
                 {audit.notes && <p className="text-sm text-on-surface-variant">Notas: {audit.notes}</p>}
                 <div className="mt-2 text-xs text-on-surface-variant">
                   {audit.items.length} medicamentos revisados
@@ -422,14 +425,14 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
               <span className="material-symbols-outlined text-2xl">close</span>
             </button>
             <h3 className="font-headline-md text-headline-md text-primary mb-md border-b border-outline-variant pb-xs">
-              Registrar Toma de Inventario Físico
+              Registrar Toma de Inventario FÃ­sico
             </h3>
             <form onSubmit={handleAuditSubmit} className="space-y-md">
               <div className="bg-surface-container-low border border-outline-variant rounded-lg overflow-hidden max-h-[420px] overflow-y-auto">
                 <table className="w-full text-center border-collapse">
                   <thead className="bg-surface-container-high/40 border-b border-outline-variant sticky top-0">
                     <tr>
-                      <th className="px-md py-sm text-xs text-on-surface-variant">Código</th>
+                      <th className="px-md py-sm text-xs text-on-surface-variant">CÃ³digo</th>
                       <th className="px-md py-sm text-xs text-on-surface-variant">Principio Activo</th>
                       <th className="px-md py-sm text-xs text-on-surface-variant">Stock Sistema</th>
                       <th className="px-md py-sm text-xs text-on-surface-variant">Cantidad Observada (Obligatoria)</th>
@@ -508,7 +511,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                 Detalle de Toma #{selectedAudit.id}
               </h3>
               <p className="text-sm text-on-surface-variant">
-                {new Date(selectedAudit.created_at).toLocaleString('es-CR')} | Farmacéutico: {selectedAudit.pharmacist_name}
+                {new Date(selectedAudit.created_at).toLocaleString('es-CR')} | FarmacÃ©utico: {selectedAudit.pharmacist_name}
               </p>
               {selectedAudit.notes && (
                 <p className="text-sm text-on-surface-variant">Notas: {selectedAudit.notes}</p>
@@ -519,7 +522,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
               <table className="w-full text-center border-collapse">
                 <thead className="bg-surface-container-high/40 border-b border-outline-variant sticky top-0">
                   <tr>
-                    <th className="px-md py-sm text-xs text-on-surface-variant">Código</th>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">CÃ³digo</th>
                     <th className="px-md py-sm text-xs text-on-surface-variant">Principio Activo</th>
                     <th className="px-md py-sm text-xs text-on-surface-variant">Sistema</th>
                     <th className="px-md py-sm text-xs text-on-surface-variant">Observado</th>
@@ -566,7 +569,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
             <form onSubmit={handleAddSubmit} className="space-y-md">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
                 <div className="flex flex-col gap-xs">
-                  <label className="text-xs font-semibold text-on-surface-variant">Código del Medicamento</label>
+                  <label className="text-xs font-semibold text-on-surface-variant">CÃ³digo del Medicamento</label>
                   <input
                     type="text"
                     required
@@ -601,13 +604,13 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
                 <div className="flex flex-col gap-xs">
-                  <label className="text-xs font-semibold text-on-surface-variant">Categoría</label>
+                  <label className="text-xs font-semibold text-on-surface-variant">CategorÃ­a</label>
                   <select
                     className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
                     value={medForm.category}
                     onChange={(e) => setMedForm({ ...medForm, category: e.target.value })}
                   >
-                    <option value="Psicotrópico">Psicotrópico</option>
+                    <option value="PsicotrÃ³pico">PsicotrÃ³pico</option>
                     <option value="Estupefaciente">Estupefaciente</option>
                     <option value="Otro">Otro</option>
                   </select>
@@ -638,7 +641,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                   />
                 </div>
                 <div className="flex flex-col gap-xs">
-                  <label className="text-xs font-semibold text-on-surface-variant">Stock Mínimo (Alerta)</label>
+                  <label className="text-xs font-semibold text-on-surface-variant">Stock MÃ­nimo (Alerta)</label>
                   <input
                     type="number"
                     min="1"
@@ -752,7 +755,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
             <form onSubmit={handleEditSubmit} className="space-y-md">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
                 <div className="flex flex-col gap-xs">
-                  <label className="text-xs font-semibold text-on-surface-variant">Código del Medicamento</label>
+                  <label className="text-xs font-semibold text-on-surface-variant">CÃ³digo del Medicamento</label>
                   <input
                     type="text"
                     required
@@ -786,13 +789,13 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
                 <div className="flex flex-col gap-xs">
-                  <label className="text-xs font-semibold text-on-surface-variant">Categoría</label>
+                  <label className="text-xs font-semibold text-on-surface-variant">CategorÃ­a</label>
                   <select
                     className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
                     value={medForm.category}
                     onChange={(e) => setMedForm({ ...medForm, category: e.target.value })}
                   >
-                    <option value="Psicotrópico">Psicotrópico</option>
+                    <option value="PsicotrÃ³pico">PsicotrÃ³pico</option>
                     <option value="Estupefaciente">Estupefaciente</option>
                     <option value="Otro">Otro</option>
                   </select>
@@ -810,16 +813,29 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-xs">
-                <label className="text-xs font-semibold text-on-surface-variant">Stock Mínimo (Alerta)</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                  value={medForm.min_stock}
-                  onChange={(e) => setMedForm({ ...medForm, min_stock: parseInt(e.target.value) || 0 })}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Stock Inicial</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
+                    value={medForm.initial_stock}
+                    onChange={(e) => setMedForm({ ...medForm, initial_stock: parseInt(e.target.value, 10) || 0 })}
+                  />
+                </div>
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-semibold text-on-surface-variant">Stock MÃ­nimo (Alerta)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
+                    value={medForm.min_stock}
+                    onChange={(e) => setMedForm({ ...medForm, min_stock: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-md justify-end pt-sm border-t border-outline-variant">
@@ -845,3 +861,4 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     </div>
   );
 }
+

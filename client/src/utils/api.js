@@ -412,6 +412,7 @@ export const api = {
         active_principle: medicationData.active_principle,
         category: medicationData.category,
         unit: medicationData.unit,
+        initial_stock: Math.max(0, Number(medicationData.initial_stock) || 0),
         min_stock: Number(medicationData.min_stock) || 0,
         shelf_location: medicationData.shelf_location || 'Almacen General'
       };
