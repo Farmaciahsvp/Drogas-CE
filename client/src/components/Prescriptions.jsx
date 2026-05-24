@@ -360,9 +360,6 @@ export default function Prescriptions({ user }) {
       {isDetailsModalOpen && selectedPrescription && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-md">
           <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-2xl w-full p-lg shadow-2xl relative">
-            <button onClick={() => setIsDetailsModalOpen(false)} className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface">
-              <span className="material-symbols-outlined text-2xl">close</span>
-            </button>
             <div className="border-b border-outline-variant pb-xs mb-md flex justify-between items-center">
               <h3 className="font-headline-md text-headline-md text-primary font-semibold">Receta Digitalizada</h3>
               <span className="font-display-lg text-display-lg text-primary text-xl font-extrabold">{detailsForm.recipeNumber || formatRecipeNumber(selectedPrescription.patient_name)}</span>
@@ -490,6 +487,12 @@ export default function Prescriptions({ user }) {
                 </>
               ) : (
                 <>
+                  <button
+                    onClick={() => setIsDetailsModalOpen(false)}
+                    className="h-10 px-md rounded border border-outline-variant text-on-surface font-semibold text-xs"
+                  >
+                    Cerrar
+                  </button>
                   <button
                     onClick={() => setIsEditingDetails(true)}
                     className="h-10 px-md rounded border border-primary/40 text-primary font-semibold text-xs"
