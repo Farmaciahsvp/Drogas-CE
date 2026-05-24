@@ -51,7 +51,7 @@ export default function ReplenishRequests({ user }) {
       return {
         id: m.id,
         code: parsed.code,
-        medication: `${parsed.label}${m.active_principle ? ` (${m.active_principle})` : ''}`,
+        medication: parsed.label || String(m.active_principle || '-'),
         cuota,
         saldo,
         aReponer,
@@ -489,8 +489,9 @@ function escapeHtml(value) {
 function parseMedicationCodeAndLabel(medication) {
   const explicitCode = String(medication?.code || '').trim();
   const rawName = String(medication?.name || '').trim();
-  const strippedName = rawName.replace(/^([0-9]{2,4}-[0-9]{2,6}-[0-9]{2,6})\s*/, '').trim();
-  const fallbackLabel = strippedName || rawName || '-';
+  const strippedCode = rawName.replace(/^([0-9]{2,4}-[0-9]{2,6}-[0-9]{2,6})\s*/, '').trim();
+  const strippedParens = strippedCode.replace(/^\((.*)\)$/, '$1').trim();
+  const fallbackLabel = strippedParens || strippedCode || rawName || '-';
 
   if (explicitCode) {
     return { code: explicitCode, label: fallbackLabel };
