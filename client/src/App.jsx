@@ -22,14 +22,6 @@ function App() {
     document.documentElement.classList.add('dark');
   }, []);
 
-  if (!user) {
-    return <Login onLoginSuccess={(u) => {
-      setUser(u);
-      setActiveTab('dashboard');
-      setSearchTerm('');
-    }} />;
-  }
-
   const handleLogout = () => {
     api.auth.logout();
     setUser(null);
@@ -110,6 +102,14 @@ function App() {
       .join('')
       .toUpperCase() || 'US';
   };
+
+  if (!user) {
+    return <Login onLoginSuccess={(u) => {
+      setUser(u);
+      setActiveTab('dashboard');
+      setSearchTerm('');
+    }} />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body-lg">
