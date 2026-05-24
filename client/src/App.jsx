@@ -23,7 +23,11 @@ function App() {
   }, []);
 
   if (!user) {
-    return <Login onLoginSuccess={(u) => setUser(u)} />;
+    return <Login onLoginSuccess={(u) => {
+      setUser(u);
+      setActiveTab('dashboard');
+      setSearchTerm('');
+    }} />;
   }
 
   const handleLogout = () => {
@@ -85,14 +89,14 @@ function App() {
     }
   };
 
-  const getInitials = (name) => {
-    return name
+  const getInitials = (name = '') => {
+    return String(name || '')
       .split(' ')
       .filter((n) => n)
       .slice(0, 2)
       .map((n) => n[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase() || 'US';
   };
 
   return (

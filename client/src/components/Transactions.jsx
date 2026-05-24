@@ -51,9 +51,9 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
   // Filtrado de medicamentos para la vista de tarjetas
   const filteredMedications = medications.filter((med) => {
     return (
-      med.name.toLowerCase().includes(activeSearch.toLowerCase()) ||
-      med.active_principle.toLowerCase().includes(activeSearch.toLowerCase()) ||
-      med.category.toLowerCase().includes(activeSearch.toLowerCase())
+      String(med.name || '').toLowerCase().includes(String(activeSearch || '').toLowerCase()) ||
+      String(med.active_principle || '').toLowerCase().includes(String(activeSearch || '').toLowerCase()) ||
+      String(med.category || '').toLowerCase().includes(String(activeSearch || '').toLowerCase())
     );
   });
 
@@ -69,7 +69,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
     // Si estamos en la vista de detalle del medicamento, no filtramos por texto
     // (a menos que se quiera buscar específicamente dentro del historial de ese medicamento)
     const matchesSearch = selectedMed
-      ? tx.user_name.toLowerCase().includes(activeSearch.toLowerCase()) || (tx.notes && tx.notes.toLowerCase().includes(activeSearch.toLowerCase()))
+      ? String(tx.user_name || '').toLowerCase().includes(String(activeSearch || '').toLowerCase()) || String(tx.notes || '').toLowerCase().includes(String(activeSearch || '').toLowerCase())
       : true;
 
     return matchesMedicationFilter && matchesType && matchesSearch;
@@ -423,3 +423,4 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
     </div>
   );
 }
+
