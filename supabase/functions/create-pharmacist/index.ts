@@ -21,7 +21,10 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const serviceRoleKey =
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
+      Deno.env.get('SB_SUPABASE_SERVICE_ROLE_KEY') ??
+      '';
 
     const client = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } }
@@ -57,7 +60,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const normalizedUsername = String(username).trim().toLowerCase();
+    const rawUsername = String(username).trim().toLowerCase();
+    const normalizedUsername = rawUsername.includes('@')
+      ? rawUsername.split('@')[0]
+      : rawUsername;
+    if (!normalizedUsername || normalizedUsername.length < 3) {
+      return new Response(JSON.stringify({ error: 'Nombre de usuario invalido.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     const email = `${normalizedUsername}@drogasce.local`;
 
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
