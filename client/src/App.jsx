@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api, getCurrentUser } from './utils/api';
+import { api, getCurrentUser, flushOfflineQueue } from './utils/api';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -69,6 +69,18 @@ function App() {
       window.removeEventListener('keydown', onEscLogout);
     };
   }, [user]);
+
+  useEffect(() => {
+    const onBackOnline = async () => {
+      try {
+        await flushOfflineQueue();
+      } catch {
+        // keep silent; next online event will retry
+      }
+    };
+    window.addEventListener('online', onBackOnline);
+    return () => window.removeEventListener('online', onBackOnline);
+  }, []);
 
   const renderActiveView = () => {
     switch (activeTab) {

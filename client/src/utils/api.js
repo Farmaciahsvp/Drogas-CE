@@ -1,5 +1,6 @@
 ﻿const API_URL = 'http://localhost:5000/api';
 import { supabase } from './supabase';
+const OFFLINE_QUEUE_KEY = 'offline_sync_queue_v1';
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
@@ -12,6 +13,59 @@ export const setCurrentUser = (user) => {
   } else {
     localStorage.removeItem('user');
   }
+};
+
+const readOfflineQueue = () => {
+  try {
+    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeOfflineQueue = (queue) => {
+  localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+};
+
+const isOfflineLikeError = (err) => {
+  const msg = String(err?.message || '').toLowerCase();
+  return !navigator.onLine || msg.includes('failed to fetch') || msg.includes('network');
+};
+
+const enqueueOffline = (kind, payload) => {
+  const queue = readOfflineQueue();
+  queue.push({
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    kind,
+    payload,
+    created_at: new Date().toISOString()
+  });
+  writeOfflineQueue(queue);
+};
+
+export const flushOfflineQueue = async () => {
+  const queue = readOfflineQueue();
+  if (!queue.length) return { flushed: 0, remaining: 0 };
+
+  const remaining = [];
+  let flushed = 0;
+
+  for (const op of queue) {
+    try {
+      if (op.kind === 'inventory.create') await api.inventory.create(op.payload, true);
+      else if (op.kind === 'inventory.update') await api.inventory.update(op.payload.id, op.payload.data, true);
+      else if (op.kind === 'replenish.create') await api.replenish.create(op.payload, true);
+      else if (op.kind === 'prescriptions.create') await api.prescriptions.create(op.payload, true);
+      else remaining.push(op);
+      flushed += 1;
+    } catch (err) {
+      if (isOfflineLikeError(err)) remaining.push(op);
+    }
+  }
+
+  writeOfflineQueue(remaining);
+  return { flushed, remaining: remaining.length };
 };
 
 async function request(endpoint, options = {}) {
@@ -119,7 +173,7 @@ export const api = {
       if (error) throw new Error(error.message || 'Error al cargar inventario.');
       return data;
     },
-    create: async (medicationData) => {
+    create: async (medicationData, fromReplay = false) => {
       const payload = {
         name: medicationData.name,
         active_principle: medicationData.active_principle,
@@ -129,9 +183,17 @@ export const api = {
         min_stock: Number(medicationData.min_stock) || 0,
         shelf_location: medicationData.shelf_location || 'Almacen General'
       };
-      const { data, error } = await supabase.from('medications').insert([payload]).select('id').single();
-      if (error) throw new Error(error.message || 'Error al crear medicamento.');
-      return data;
+      try {
+        const { data, error } = await supabase.from('medications').insert([payload]).select('id').single();
+        if (error) throw new Error(error.message || 'Error al crear medicamento.');
+        return data;
+      } catch (err) {
+        if (!fromReplay && isOfflineLikeError(err)) {
+          enqueueOffline('inventory.create', medicationData);
+          return { queued: true };
+        }
+        throw err;
+      }
     },
     refill: async (medication_id, quantity, notes) => {
       const { data: authUser } = await supabase.auth.getUser();
@@ -163,7 +225,7 @@ export const api = {
       }
       throw new Error('No fue posible registrar el ingreso de stock en Supabase.');
     },
-    update: async (id, medicationData) => {
+    update: async (id, medicationData, fromReplay = false) => {
       const payload = {
         name: medicationData.name,
         active_principle: medicationData.active_principle,
@@ -172,9 +234,17 @@ export const api = {
         min_stock: Number(medicationData.min_stock) || 0,
         shelf_location: medicationData.shelf_location || 'Almacen General'
       };
-      const { data, error } = await supabase.from('medications').update(payload).eq('id', id).select('id').single();
-      if (error) throw new Error(error.message || 'Error al actualizar medicamento.');
-      return data;
+      try {
+        const { data, error } = await supabase.from('medications').update(payload).eq('id', id).select('id').single();
+        if (error) throw new Error(error.message || 'Error al actualizar medicamento.');
+        return data;
+      } catch (err) {
+        if (!fromReplay && isOfflineLikeError(err)) {
+          enqueueOffline('inventory.update', { id, data: medicationData });
+          return { queued: true };
+        }
+        throw err;
+      }
     }
   },
   prescriptions: {
@@ -207,7 +277,7 @@ export const api = {
       }
       throw new Error('No se pudo cargar el detalle de receta desde Supabase.');
     },
-    create: async (prescriptionData) => {
+    create: async (prescriptionData, fromReplay = false) => {
       const {
         patient_name,
         patient_id,
@@ -242,7 +312,12 @@ export const api = {
           return { id: header.id, code: header.code };
         }
       }
-      throw new Error('No se pudo registrar la receta en Supabase.');
+      const err = new Error('No se pudo registrar la receta en Supabase.');
+      if (!fromReplay && !navigator.onLine) {
+        enqueueOffline('prescriptions.create', prescriptionData);
+        return { queued: true };
+      }
+      throw err;
     },
     dispense: async (prescriptionId) => {
       const { data, error } = await supabase.rpc('dispense_prescription', {
@@ -331,14 +406,22 @@ export const api = {
       }
       throw new Error(error.message || 'Error al cargar solicitudes de reposicion.');
     },
-    create: async (requestData) => {
+    create: async (requestData, fromReplay = false) => {
       const { data: authUser } = await supabase.auth.getUser();
       const uid = authUser?.user?.id;
       if (!uid) throw new Error('Sesion invalida.');
       const payload = { ...requestData, user_id: uid, status: 'pending' };
-      const { data, error } = await supabase.from('replenishment_requests').insert([payload]).select('id').single();
-      if (error) throw new Error(error.message || 'Error al crear solicitud.');
-      return data;
+      try {
+        const { data, error } = await supabase.from('replenishment_requests').insert([payload]).select('id').single();
+        if (error) throw new Error(error.message || 'Error al crear solicitud.');
+        return data;
+      } catch (err) {
+        if (!fromReplay && isOfflineLikeError(err)) {
+          enqueueOffline('replenish.create', requestData);
+          return { queued: true };
+        }
+        throw err;
+      }
     },
     approve: async (id) => {
       const { data, error } = await supabase.rpc('review_replenishment_request', {
