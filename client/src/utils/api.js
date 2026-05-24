@@ -372,7 +372,7 @@ export const api = {
             .select('code, patient_name')
             .in('code', rxCodes);
           rxMap = (rxRows || []).reduce((acc, r) => {
-            acc[r.code] = String(r.patient_name || '').replace(/^Receta\\s*/i, '').trim();
+            acc[r.code] = String(r.patient_name || '').replace(/^Receta\s*/i, '').trim();
             return acc;
           }, {});
         }
