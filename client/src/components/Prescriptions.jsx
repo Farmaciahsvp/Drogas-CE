@@ -16,6 +16,7 @@ export default function Prescriptions({ user }) {
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [detailsForm, setDetailsForm] = useState({
     recipeNumber: '',
     patientId: '',
@@ -170,11 +171,14 @@ export default function Prescriptions({ user }) {
   };
 
   const handleDeletePrescription = async () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeletePrescription = async () => {
     if (!selectedPrescription?.id) return;
-    const ok = window.confirm('Esta accion eliminara la receta y revertira el rebajo de inventario asociado. Desea continuar?');
-    if (!ok) return;
     try {
       await api.prescriptions.remove(selectedPrescription.id);
+      setIsDeleteConfirmOpen(false);
       setIsDetailsModalOpen(false);
       setSelectedPrescription(null);
       setIsEditingDetails(false);
@@ -542,6 +546,36 @@ export default function Prescriptions({ user }) {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-md">
+          <div className="w-full max-w-lg rounded-2xl border border-outline-variant bg-surface-container shadow-2xl overflow-hidden">
+            <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low/60">
+              <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Confirmar Eliminación</h3>
+            </div>
+            <div className="px-lg py-md space-y-sm">
+              <p className="text-sm text-on-surface">
+                Esta acción eliminará la receta y revertirá el rebajo de inventario asociado.
+              </p>
+              <p className="text-sm text-on-surface-variant">¿Desea continuar?</p>
+            </div>
+            <div className="px-lg py-md border-t border-outline-variant flex justify-end gap-sm bg-surface-container-low/50">
+              <button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="h-10 px-md rounded border border-outline-variant text-on-surface font-semibold text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeletePrescription}
+                className="h-10 px-md rounded bg-error text-on-error font-semibold text-xs"
+              >
+                Eliminar Receta
+              </button>
             </div>
           </div>
         </div>
