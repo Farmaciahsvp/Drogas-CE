@@ -57,7 +57,15 @@ const stableRecCodeFromClientId = (clientId) => {
   return `REC-${lastSix}`;
 };
 
-const cacheKey = (k) => `${SESSION_CACHE_PREFIX}${k}`;
+const cacheUserScope = () => {
+  try {
+    const current = getCurrentUser();
+    return current?.id || 'anon';
+  } catch {
+    return 'anon';
+  }
+};
+const cacheKey = (k) => `${SESSION_CACHE_PREFIX}${cacheUserScope()}:${k}`;
 const readCache = (k) => {
   try {
     const raw = localStorage.getItem(cacheKey(k));
@@ -78,7 +86,7 @@ const writeCache = (k, data) => {
 };
 const clearCacheByPrefix = (prefix) => {
   try {
-    const fullPrefix = cacheKey(prefix);
+    const fullPrefix = `${SESSION_CACHE_PREFIX}${cacheUserScope()}:${prefix}`;
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i += 1) {
       const k = localStorage.key(i);
@@ -95,6 +103,19 @@ const invalidateOperationalCache = () => {
   clearCacheByPrefix('prescriptions:');
   clearCacheByPrefix('transactions:');
   clearCacheByPrefix('replenish:');
+};
+
+const clearAllAppCache = () => {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(SESSION_CACHE_PREFIX)) keysToRemove.push(k);
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore cache clear errors
+  }
 };
 
 export const flushOfflineQueue = async () => {
@@ -190,6 +211,7 @@ export const api = {
         throw new Error('No se pudo cargar el perfil del usuario.');
       }
 
+      clearAllAppCache();
       const response = { user: profileData };
       setCurrentUser(response.user);
       return response;
@@ -198,6 +220,7 @@ export const api = {
       try {
         await supabase.auth.signOut();
       } finally {
+        clearAllAppCache();
         setCurrentUser(null);
       }
     },
@@ -490,7 +513,18 @@ export const api = {
         .select('id, medication_id, type, quantity, reference_type, reference_id, user_id, created_at, notes, medications(name, unit), profiles(name)')
         .order('created_at', { ascending: false });
       if (scope !== 'all') query = query.gte('created_at', sinceIso);
-      const { data, error } = await query;
+      let { data, error } = await query;
+      if (error) {
+        // Fallback when profile join permissions are stricter in a target environment.
+        let fallbackQuery = supabase
+          .from('transactions')
+          .select('id, medication_id, type, quantity, reference_type, reference_id, user_id, created_at, notes, medications(name, unit)')
+          .order('created_at', { ascending: false });
+        if (scope !== 'all') fallbackQuery = fallbackQuery.gte('created_at', sinceIso);
+        const retry = await fallbackQuery;
+        data = retry.data;
+        error = retry.error;
+      }
       if (!error) {
         const txRows = data || [];
         const rxCodes = [...new Set(
@@ -524,7 +558,7 @@ export const api = {
           reference_recipe_number: t.reference_type === 'prescription' ? (rxMap[t.reference_id] || null) : null,
           medication_name: t.medications?.name,
           unit: t.medications?.unit,
-          user_name: t.profiles?.name
+          user_name: t.profiles?.name || 'Usuario'
         }));
         writeCache(cKey, mapped);
         return mapped;
@@ -646,7 +680,7 @@ export const api = {
         timestamp: t.created_at,
         medication_name: t.medications?.active_principle || t.medications?.name,
         unit: t.medications?.unit,
-        user_name: t.profiles?.name,
+        user_name: t.profiles?.name || 'Usuario',
         notes: t.notes
       }));
 
@@ -659,9 +693,19 @@ export const api = {
             .order('created_at', { ascending: false })
             .limit(5)
         ]);
-
-        if (txRes.error) throw new Error(txRes.error.message || 'Error al cargar transacciones recientes.');
-        const recentTx = mapRecentTransactions(txRes.data);
+        let txRows = txRes.data;
+        let txErr = txRes.error;
+        if (txErr) {
+          const fallbackTx = await supabase
+            .from('transactions')
+            .select('id, type, quantity, created_at, medications(name, active_principle, unit), notes')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          txRows = fallbackTx.data;
+          txErr = fallbackTx.error;
+        }
+        if (txErr) throw new Error(txErr.message || 'Error al cargar transacciones recientes.');
+        const recentTx = mapRecentTransactions(txRows);
 
         if (statsRes.error) {
           const [medRes, prescRes] = await Promise.all([
@@ -682,7 +726,7 @@ export const api = {
             return acc;
           }, {});
 
-          return {
+          const payload = {
             totalMedications: meds.length,
             totalStock: meds.reduce((acc, m) => acc + (m.stock || 0), 0),
             totalAmpollas: meds.filter((m) => (m.unit || '').toLowerCase() === 'ampollas').reduce((acc, m) => acc + (m.stock || 0), 0),
@@ -696,6 +740,8 @@ export const api = {
               .slice(0, 5),
             recentTransactions: recentTx
           };
+          writeCache('dashboard:stats', payload);
+          return payload;
         }
 
         const payload = {
