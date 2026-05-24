@@ -305,21 +305,21 @@ export default function ReplenishRequests({ user }) {
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-high/40 border-b border-outline-variant">
                 <tr>
-                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant">Código del Medicamento</th>
-                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant">Medicamento</th>
-                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-right">Cuota (Stock Inicial)</th>
-                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-right">Saldo Inventario</th>
-                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-right">Cantidad a Reponer</th>
+                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-center">Código del Medicamento</th>
+                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-center">Medicamento</th>
+                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-center">Cuota (Stock Inicial)</th>
+                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-center">Saldo Inventario</th>
+                  <th className="px-md py-sm font-label-caps text-label-caps text-on-surface-variant text-center">Cantidad a Reponer</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant text-sm">
                 {replenishmentRows.map((row) => (
                   <tr key={row.id} className="hover:bg-surface-container-highest transition-colors">
-                    <td className="px-md py-md font-data-mono text-data-mono text-primary font-semibold">{row.code}</td>
-                    <td className="px-md py-md text-on-surface">{row.medication}</td>
-                    <td className="px-md py-md text-on-surface text-right">{row.cuota}</td>
-                    <td className="px-md py-md text-on-surface text-right">{row.saldo}</td>
-                    <td className="px-md py-md text-right font-bold text-secondary">{row.aReponer}</td>
+                    <td className="px-md py-md font-data-mono text-data-mono text-primary font-semibold text-center">{row.code}</td>
+                    <td className="px-md py-md text-on-surface text-center">{row.medication}</td>
+                    <td className="px-md py-md text-on-surface text-center">{row.cuota}</td>
+                    <td className="px-md py-md text-on-surface text-center">{row.saldo}</td>
+                    <td className="px-md py-md text-center font-bold text-secondary">{row.aReponer}</td>
                   </tr>
                 ))}
               </tbody>
@@ -489,7 +489,8 @@ function escapeHtml(value) {
 function parseMedicationCodeAndLabel(medication) {
   const explicitCode = String(medication?.code || '').trim();
   const rawName = String(medication?.name || '').trim();
-  const fallbackLabel = rawName || '-';
+  const strippedName = rawName.replace(/^([0-9]{2,4}-[0-9]{2,6}-[0-9]{2,6})\s*/, '').trim();
+  const fallbackLabel = strippedName || rawName || '-';
 
   if (explicitCode) {
     return { code: explicitCode, label: fallbackLabel };
