@@ -10,6 +10,12 @@ export default function Settings({ user }) {
 
   const [medError, setMedError] = useState('');
   const [medSuccess, setMedSuccess] = useState('');
+  const [logError, setLogError] = useState('');
+  const [logs, setLogs] = useState([]);
+  const [logTypeFilter, setLogTypeFilter] = useState('all');
+  const [logSearch, setLogSearch] = useState('');
+  const [logFromDate, setLogFromDate] = useState('');
+  const [logToDate, setLogToDate] = useState('');
 
   // Formulario de Farmacéutico
   const [pharmForm, setPharmForm] = useState({
@@ -43,8 +49,19 @@ export default function Settings({ user }) {
     }
   };
 
+  const loadLogs = async () => {
+    setLogError('');
+    try {
+      const data = await api.transactions.getAll();
+      setLogs(data || []);
+    } catch (err) {
+      setLogError(err.message || 'Error al obtener logs del sistema.');
+    }
+  };
+
   useEffect(() => {
     loadPharmacists();
+    loadLogs();
   }, []);
 
   // Registro de farmacéutico
@@ -101,6 +118,46 @@ export default function Settings({ user }) {
     } catch (err) {
       setMedError(err.message || 'Error al registrar el medicamento.');
     }
+  };
+
+  const filteredLogs = logs.filter((log) => {
+    const matchesType = logTypeFilter === 'all' || log.type === logTypeFilter;
+    const text = `${log.medication_name || ''} ${log.user_name || ''} ${log.notes || ''}`.toLowerCase();
+    const matchesSearch = !logSearch || text.includes(logSearch.toLowerCase());
+
+    const ts = new Date(log.timestamp);
+    const fromOk = !logFromDate || ts >= new Date(`${logFromDate}T00:00:00`);
+    const toOk = !logToDate || ts <= new Date(`${logToDate}T23:59:59`);
+
+    return matchesType && matchesSearch && fromOk && toOk;
+  });
+
+  const handleDownloadLogsTxt = () => {
+    const lines = [];
+    lines.push('Drogas CE - Reporte de Logs');
+    lines.push(`Generado por: ${user?.name || 'Sistema'}`);
+    lines.push(`Fecha: ${new Date().toLocaleString('es-ES')}`);
+    lines.push(`Filtros => tipo: ${logTypeFilter}, busqueda: ${logSearch || '-'}, desde: ${logFromDate || '-'}, hasta: ${logToDate || '-'}`);
+    lines.push('='.repeat(90));
+
+    filteredLogs.forEach((log) => {
+      const sign = log.type === 'ingreso' ? '+' : '-';
+      lines.push(`[${new Date(log.timestamp).toLocaleString('es-ES')}] ${log.type.toUpperCase()} ${sign}${log.quantity}`);
+      lines.push(`Medicamento: ${log.medication_name || '-'} (${log.unit || '-'})`);
+      lines.push(`Usuario: ${log.user_name || '-'} | Ref: ${log.reference_type || '-'} ${log.reference_id || ''}`);
+      lines.push(`Notas: ${log.notes || '-'}`);
+      lines.push('-'.repeat(90));
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `drogas-ce-logs-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -342,6 +399,66 @@ export default function Settings({ user }) {
           </form>
         </div>
 
+      </div>
+
+      <div className="bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm space-y-md">
+        <div className="flex items-center justify-between gap-sm border-b border-outline-variant pb-xs">
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Reporte de Logs</h3>
+          </div>
+          <button
+            onClick={loadLogs}
+            className="h-9 px-sm rounded bg-surface-container-high border border-outline-variant text-on-surface text-xs font-semibold flex items-center gap-xs"
+          >
+            <RefreshCw size={14} />
+            Actualizar
+          </button>
+        </div>
+
+        {logError && (
+          <div className="bg-error-container/20 border border-error text-error p-sm rounded-lg text-sm">
+            {logError}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-sm">
+          <input type="date" value={logFromDate} onChange={(e) => setLogFromDate(e.target.value)} className="bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none" />
+          <input type="date" value={logToDate} onChange={(e) => setLogToDate(e.target.value)} className="bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none" />
+          <select value={logTypeFilter} onChange={(e) => setLogTypeFilter(e.target.value)} className="bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none">
+            <option value="all">Todos</option>
+            <option value="ingreso">Ingresos</option>
+            <option value="egreso">Egresos</option>
+          </select>
+          <input type="text" placeholder="Buscar por usuario/nota/medicamento" value={logSearch} onChange={(e) => setLogSearch(e.target.value)} className="md:col-span-2 bg-surface-variant border-none rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none" />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-on-surface-variant">Resultados: {filteredLogs.length}</p>
+          <button
+            onClick={handleDownloadLogsTxt}
+            className="h-10 px-md rounded bg-primary text-on-primary font-label-caps text-label-caps text-xs font-bold"
+          >
+            Descargar Logs TXT
+          </button>
+        </div>
+
+        <div className="max-h-64 overflow-y-auto space-y-xs pr-xs scrollbar-thin">
+          {filteredLogs.length === 0 ? (
+            <p className="text-xs italic text-on-surface-variant">No hay logs para los filtros seleccionados.</p>
+          ) : (
+            filteredLogs.slice(0, 100).map((log) => (
+              <div key={log.id} className="bg-surface-container-low p-sm rounded border border-outline-variant text-xs">
+                <p className="font-semibold text-on-surface">
+                  [{new Date(log.timestamp).toLocaleString('es-ES')}] {log.type.toUpperCase()} {log.quantity} {log.unit || ''}
+                </p>
+                <p className="text-on-surface-variant">
+                  {log.medication_name || '-'} | {log.user_name || '-'} | {log.notes || '-'}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
     </div>
