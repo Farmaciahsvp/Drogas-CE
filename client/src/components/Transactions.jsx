@@ -295,7 +295,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
           <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-sm">
             {filteredTransactions.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse print-table">
+                <table className="w-full text-center border-collapse print-table">
                   <thead className="bg-surface-container-high/40 border-b border-outline-variant">
                     <tr>
                       <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant print-header">Fecha / Hora</th>
@@ -310,7 +310,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
                       const isIngreso = tx.type === 'ingreso';
                       return (
                         <tr key={tx.id} className="hover:bg-surface-container-highest transition-colors">
-                          <td className="px-lg py-md font-data-mono text-data-mono text-xs text-on-surface-variant font-medium print-text">
+                          <td className="px-lg py-md font-data-mono text-data-mono text-xs text-on-surface-variant font-medium print-text text-center">
                             {new Date(tx.timestamp).toLocaleString('es-ES', { 
                               day: '2-digit', 
                               month: '2-digit', 
@@ -320,7 +320,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
                               second: '2-digit'
                             })}
                           </td>
-                          <td className="px-lg py-md">
+                          <td className="px-lg py-md text-center">
                             <span className={`px-sm py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
                               isIngreso 
                                 ? 'bg-primary-container/10 text-primary border-primary/20 print-badge-in' 
@@ -329,13 +329,13 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
                               {isIngreso ? 'Ingreso' : 'Egreso'}
                             </span>
                           </td>
-                          <td className={`px-lg py-md font-data-mono text-data-mono font-bold print-text ${
+                          <td className={`px-lg py-md font-data-mono text-data-mono font-bold print-text text-center ${
                             isIngreso ? 'text-primary' : 'text-secondary'
                           }`}>
                             {isIngreso ? '+' : '-'}{tx.quantity} {selectedMed.unit}
                           </td>
-                          <td className="px-lg py-md text-on-surface-variant font-medium print-text">{tx.user_name}</td>
-                          <td className="px-lg py-md text-on-surface-variant text-sm print-text">{tx.notes}</td>
+                          <td className="px-lg py-md text-on-surface-variant font-medium print-text text-center">{tx.user_name}</td>
+                          <td className="px-lg py-md text-on-surface-variant text-sm print-text text-center">{tx.notes}</td>
                         </tr>
                       );
                     })}
