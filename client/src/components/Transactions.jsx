@@ -8,6 +8,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
   const [loading, setLoading] = useState(true);
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all'); // all, ingreso, egreso
+  const [dataScope, setDataScope] = useState('recent');
   
   // Estado para el medicamento seleccionado para ver su historial específico
   const [selectedMed, setSelectedMed] = useState(null);
@@ -25,7 +26,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
     setLoading(true);
     try {
       const [txData, medData] = await Promise.all([
-        api.transactions.getAll(),
+        api.transactions.getAll(dataScope),
         api.inventory.getAll()
       ]);
       setTransactions(txData);
@@ -39,7 +40,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [dataScope]);
 
   const handlePrint = () => {
     window.print();
@@ -108,6 +109,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
 
           {/* PANEL DE BUSCADOR */}
           <div className="bg-surface-container p-md rounded-xl border border-outline-variant shadow-sm">
+            <div className="flex flex-col md:flex-row gap-sm md:items-center md:justify-between">
             <div className="relative w-full md:w-96">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
               <input
@@ -121,6 +123,15 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
               {globalSearchTerm && (
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary font-semibold">Búsqueda Global</span>
               )}
+            </div>
+            <select
+              value={dataScope}
+              onChange={(e) => setDataScope(e.target.value)}
+              className="bg-surface-variant border-none rounded-full px-4 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+            >
+              <option value="recent">Últimos 7 días</option>
+              <option value="all">Histórico completo</option>
+            </select>
             </div>
           </div>
 

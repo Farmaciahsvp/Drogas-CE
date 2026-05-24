@@ -28,13 +28,14 @@ export default function Prescriptions({ user }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [medFilter, setMedFilter] = useState('');
+  const [dataScope, setDataScope] = useState('recent');
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [medsData, prescData] = await Promise.all([
         api.inventory.getAll(),
-        api.prescriptions.getAll()
+        api.prescriptions.getAll('', dataScope)
       ]);
       setMedications(medsData);
       setPrescriptions(prescData);
@@ -47,7 +48,7 @@ export default function Prescriptions({ user }) {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [dataScope]);
 
   const handleSubmitPrescription = async (e) => {
     e.preventDefault();
@@ -222,6 +223,14 @@ export default function Prescriptions({ user }) {
           <h2 className="font-headline-md text-headline-md text-on-surface">Registrar Receta Medica Fisica</h2>
           <p className="font-body-sm text-body-sm text-on-surface-variant">Digitalice las recetas recibidas en ventanilla para egresar medicamentos</p>
         </div>
+        <select
+          value={dataScope}
+          onChange={(e) => setDataScope(e.target.value)}
+          className="bg-surface-variant border-none rounded-full px-4 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+        >
+          <option value="recent">Últimos 7 días</option>
+          <option value="all">Histórico completo</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">

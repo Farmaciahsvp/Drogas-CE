@@ -304,11 +304,13 @@ export const api = {
     }
   },
   prescriptions: {
-    getAll: async (status = '') => {
+    getAll: async (status = '', scope = 'recent') => {
+      const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
       let query = supabase
         .from('prescriptions')
         .select('id, code, patient_name, patient_id, doctor_name, status, created_at, prescription_items(quantity_dispensed, medications(name, active_principle, unit))')
         .order('created_at', { ascending: false });
+      if (scope !== 'all') query = query.gte('created_at', sinceIso);
       if (status) query = query.eq('status', status);
       const { data, error } = await query;
       if (error) throw new Error(error.message || 'Error al cargar recetas.');
@@ -420,11 +422,14 @@ export const api = {
     }
   },
   transactions: {
-    getAll: async () => {
-      const { data, error } = await supabase
+    getAll: async (scope = 'recent') => {
+      const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+      let query = supabase
         .from('transactions')
         .select('id, medication_id, type, quantity, reference_type, reference_id, user_id, created_at, notes, medications(name, unit), profiles(name)')
         .order('created_at', { ascending: false });
+      if (scope !== 'all') query = query.gte('created_at', sinceIso);
+      const { data, error } = await query;
       if (!error) {
         const txRows = data || [];
         const rxCodes = [...new Set(
@@ -496,11 +501,14 @@ export const api = {
     }
   },
   replenish: {
-    getAll: async () => {
-      const { data, error } = await supabase
+    getAll: async (scope = 'recent') => {
+      const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+      let query = supabase
         .from('replenishment_requests')
         .select('id, medication_id, quantity, notes, user_id, status, created_at, medications(name, active_principle, unit), profiles!replenishment_requests_user_id_fkey(name)')
         .order('created_at', { ascending: false });
+      if (scope !== 'all') query = query.gte('created_at', sinceIso);
+      const { data, error } = await query;
       if (!error) {
         return (data || []).map((r) => ({
           id: r.id,

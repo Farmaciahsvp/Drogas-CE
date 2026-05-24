@@ -13,13 +13,14 @@ export default function ReplenishRequests({ user }) {
   const [selectedMedId, setSelectedMedId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
+  const [dataScope, setDataScope] = useState('recent');
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
       const [reqData, medData] = await Promise.all([
-        api.replenish.getAll(),
+        api.replenish.getAll(dataScope),
         api.inventory.getAll()
       ]);
       setRequests(reqData);
@@ -33,7 +34,7 @@ export default function ReplenishRequests({ user }) {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [dataScope]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -138,6 +139,14 @@ export default function ReplenishRequests({ user }) {
           <h2 className="font-headline-md text-headline-md text-on-surface">Solicitudes de Reposición</h2>
           <p className="font-body-sm text-body-sm text-on-surface-variant">Gestión y aprobación de reabastecimiento crítico para farmacia</p>
         </div>
+        <select
+          value={dataScope}
+          onChange={(e) => setDataScope(e.target.value)}
+          className="bg-surface-variant border-none rounded-full px-4 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+        >
+          <option value="recent">Últimos 7 días</option>
+          <option value="all">Histórico completo</option>
+        </select>
       </div>
 
       {error && (
