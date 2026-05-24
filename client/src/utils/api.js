@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+﻿const API_URL = 'http://localhost:5000/api';
 import { supabase } from './supabase';
 
 export const getCurrentUser = () => {
@@ -285,7 +285,14 @@ export const api = {
       const { data, error } = await supabase.functions.invoke('create-pharmacist', {
         body: payload
       });
-      if (error) throw new Error(error.message || 'Error al crear farmacéutico.');
+      if (error) {
+        const detailed =
+          data?.error ||
+          error?.context?.error ||
+          error?.message ||
+          'Error al crear farmacéutico.';
+        throw new Error(detailed);
+      }
       if (data?.error) throw new Error(data.error);
       return data;
     },
@@ -295,7 +302,7 @@ export const api = {
         .select('id, username, name, role')
         .eq('role', 'farmaceutico')
         .order('name', { ascending: true });
-      if (error) throw new Error(error.message || 'Error al obtener farmacéuticos.');
+      if (error) throw new Error(error.message || 'Error al obtener farmacÃ©uticos.');
       return data || [];
     }
   },
@@ -401,3 +408,5 @@ export const api = {
     }
   }
 };
+
+

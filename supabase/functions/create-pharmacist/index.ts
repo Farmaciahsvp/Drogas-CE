@@ -19,8 +19,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseUrl =
+      Deno.env.get('SUPABASE_URL') ??
+      Deno.env.get('SB_SUPABASE_URL') ??
+      '';
+    const anonKey =
+      Deno.env.get('SUPABASE_ANON_KEY') ??
+      Deno.env.get('SB_SUPABASE_ANON_KEY') ??
+      '';
     const serviceRoleKey =
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
       Deno.env.get('SB_SUPABASE_SERVICE_ROLE_KEY') ??
