@@ -566,6 +566,17 @@ export const api = {
         setTimeout(() => reject(new Error('Tiempo de espera agotado al cargar dashboard.')), DASHBOARD_TIMEOUT_MS);
       });
 
+      const mapRecentTransactions = (txRows) => (txRows || []).map((t) => ({
+        id: t.id,
+        type: t.type,
+        quantity: t.quantity,
+        timestamp: t.created_at,
+        medication_name: t.medications?.active_principle || t.medications?.name,
+        unit: t.medications?.unit,
+        user_name: t.profiles?.name,
+        notes: t.notes
+      }));
+
       const loadPromise = (async () => {
         const [statsRes, txRes] = await Promise.all([
           supabase.rpc('get_dashboard_stats'),
@@ -576,19 +587,43 @@ export const api = {
             .limit(5)
         ]);
 
-        if (statsRes.error) throw new Error(statsRes.error.message || 'Error al cargar estadisticas.');
         if (txRes.error) throw new Error(txRes.error.message || 'Error al cargar transacciones recientes.');
+        const recentTx = mapRecentTransactions(txRes.data);
 
-        const recentTx = (txRes.data || []).map((t) => ({
-          id: t.id,
-          type: t.type,
-          quantity: t.quantity,
-          timestamp: t.created_at,
-          medication_name: t.medications?.active_principle || t.medications?.name,
-          unit: t.medications?.unit,
-          user_name: t.profiles?.name,
-          notes: t.notes
-        }));
+        if (statsRes.error) {
+          const [medRes, prescRes] = await Promise.all([
+            supabase.from('medications').select('id, name, active_principle, category, stock, min_stock, unit'),
+            supabase.from('prescriptions').select('id, status')
+          ]);
+
+          if (medRes.error) throw new Error(medRes.error.message || 'Error al cargar inventario.');
+          if (prescRes.error) throw new Error(prescRes.error.message || 'Error al cargar recetas.');
+
+          const meds = medRes.data || [];
+          const prescs = prescRes.data || [];
+
+          const byCategory = meds.reduce((acc, m) => {
+            if (!acc[m.category]) acc[m.category] = { category: m.category, count: 0, stock: 0 };
+            acc[m.category].count += 1;
+            acc[m.category].stock += m.stock || 0;
+            return acc;
+          }, {});
+
+          return {
+            totalMedications: meds.length,
+            totalStock: meds.reduce((acc, m) => acc + (m.stock || 0), 0),
+            totalAmpollas: meds.filter((m) => (m.unit || '').toLowerCase() === 'ampollas').reduce((acc, m) => acc + (m.stock || 0), 0),
+            totalTabletas: meds.filter((m) => (m.unit || '').toLowerCase() === 'tabletas').reduce((acc, m) => acc + (m.stock || 0), 0),
+            lowStockAlerts: meds.filter((m) => (m.stock || 0) <= (m.min_stock || 0)).length,
+            pendingPrescriptions: prescs.filter((p) => p.status === 'pending').length,
+            categoryDistribution: Object.values(byCategory),
+            criticalMeds: meds
+              .filter((m) => (m.stock || 0) <= (m.min_stock || 0))
+              .sort((a, b) => (a.stock || 0) - (b.stock || 0))
+              .slice(0, 5),
+            recentTransactions: recentTx
+          };
+        }
 
         return {
           ...(statsRes.data || {}),
