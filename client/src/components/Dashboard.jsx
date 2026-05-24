@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { RefreshCw } from 'lucide-react';
 
@@ -7,6 +7,7 @@ export default function Dashboard({ user, setActiveTab }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [dispatchFilter, setDispatchFilter] = useState('all');
 
   const fetchStats = async () => {
     setLoading(true);
@@ -15,7 +16,7 @@ export default function Dashboard({ user, setActiveTab }) {
       const data = await api.dashboard.getStats();
       setStats(data);
     } catch (err) {
-      setError('Error al cargar métricas del tablero.');
+      setError('Error al cargar mÃ©tricas del tablero.');
     } finally {
       setLoading(false);
     }
@@ -54,12 +55,13 @@ export default function Dashboard({ user, setActiveTab }) {
     );
   }
 
-  // Encontrar el valor máximo de stock de categoría para escalar las barras
-  const maxStock = stats?.categoryDistribution?.length > 0 
-    ? Math.max(...stats.categoryDistribution.map(c => c.stock)) 
-    : 100;
+  // Encontrar el valor mÃ¡ximo de stock de categorÃ­a para escalar las barras
+  const dispatchSeries = stats?.weeklyDispenseAverages?.series?.[dispatchFilter] || [];
+  const dispatchMax = dispatchSeries.length > 0
+    ? Math.max(...dispatchSeries.map((d) => d.avg))
+    : 1;
 
-  // Mapa de iconos de transacción recientes
+  // Mapa de iconos de transacciÃ³n recientes
   const getTxIcon = (notes, unit) => {
     const text = (notes || '').toLowerCase() + (unit || '').toLowerCase();
     if (text.includes('ampolla') || text.includes('inyecc') || text.includes('vacuna')) {
@@ -113,7 +115,7 @@ export default function Dashboard({ user, setActiveTab }) {
           </div>
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalAmpollas || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-primary">Presentación ampolla</span>
+            <span className="font-body-sm text-body-sm text-primary">PresentaciÃ³n ampolla</span>
           </div>
         </div>
 
@@ -125,7 +127,7 @@ export default function Dashboard({ user, setActiveTab }) {
           </div>
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.totalTabletas || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-primary">Presentación tableta</span>
+            <span className="font-body-sm text-body-sm text-primary">PresentaciÃ³n tableta</span>
           </div>
         </div>
 
@@ -141,7 +143,7 @@ export default function Dashboard({ user, setActiveTab }) {
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">{stats?.lowStockAlerts || 0}</div>
           <div className="mt-xs flex items-center gap-xs">
             <span className={`font-body-sm text-body-sm ${stats?.lowStockAlerts > 0 ? 'text-error font-semibold' : 'text-on-surface-variant'}`}>
-              {stats?.lowStockAlerts > 0 ? 'Requiere reabastecimiento crítico' : 'Todos los niveles normales'}
+              {stats?.lowStockAlerts > 0 ? 'Requiere reabastecimiento crÃ­tico' : 'Todos los niveles normales'}
             </span>
           </div>
         </div>
@@ -166,12 +168,12 @@ export default function Dashboard({ user, setActiveTab }) {
             <span className="font-label-caps text-label-caps text-on-surface-variant">Surtido Hoy</span>
             <span className="material-symbols-outlined text-secondary text-2xl">check_circle</span>
           </div>
-          {/* Calculamos recetas surtidas en base a egresos en transacciones recientes o ponemos un estático descriptivo */}
+          {/* Calculamos recetas surtidas en base a egresos en transacciones recientes o ponemos un estÃ¡tico descriptivo */}
           <div className="font-display-lg text-display-lg text-on-surface leading-none mt-2">
             {stats?.recentTransactions?.filter(t => t.type === 'egreso').length || 0}
           </div>
           <div className="mt-xs flex items-center gap-xs">
-            <span className="font-body-sm text-body-sm text-secondary">Egresos registrados en bitácora reciente</span>
+            <span className="font-body-sm text-body-sm text-secondary">Egresos registrados en bitÃ¡cora reciente</span>
           </div>
         </div>
 
@@ -180,31 +182,43 @@ export default function Dashboard({ user, setActiveTab }) {
       {/* DASHBOARD CENTER & SIDEBAR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
         
-        {/* BAR CHART: STOCK POR CATEGORÍA */}
+                {/* BAR CHART: DESPACHO PROMEDIO POR DIA */}
         <div className="lg:col-span-2 bg-surface-container p-lg rounded-xl border border-outline-variant flex flex-col h-[400px]">
-          <div className="flex justify-between items-center mb-lg">
-            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Distribución de Existencias</h3>
-            <p className="font-label-caps text-label-caps text-on-surface-variant">Volumen agrupado por Categoría</p>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-lg gap-sm">
+            <div>
+              <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Despacho Promedio por Día</h3>
+              <p className="font-label-caps text-label-caps text-on-surface-variant">Recetas dispensadas promedio por día de semana</p>
+            </div>
+            <select
+              value={dispatchFilter}
+              onChange={(e) => setDispatchFilter(e.target.value)}
+              className="bg-surface-variant border-none rounded-full px-4 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none"
+            >
+              <option value="all">Todos</option>
+              <option value="psychotropic">Psicotrópicos</option>
+              <option value="narcotic">Estupefacientes</option>
+              <option value="other">Otros</option>
+            </select>
           </div>
-          
-          {stats?.categoryDistribution?.length > 0 ? (
+
+          {dispatchSeries.length > 0 ? (
             <div className="flex-1 flex items-end justify-between gap-md px-sm overflow-x-auto pb-2">
-              {stats.categoryDistribution.slice(0, 7).map((cat, i) => {
-                const percentage = maxStock > 0 ? (cat.stock / maxStock) * 85 : 0; // Escalar al 85% de la altura
+              {dispatchSeries.map((item, i) => {
+                const percentage = dispatchMax > 0 ? (item.avg / dispatchMax) * 85 : 0;
                 return (
                   <div className="flex-1 flex flex-col items-center gap-sm group min-w-[50px]" key={i}>
                     <div className="w-full flex flex-col-reverse justify-start h-[200px] relative">
-                      <div 
-                        className="bg-primary rounded-t-lg w-full transition-all duration-300 group-hover:brightness-125 group-hover:scale-x-105" 
+                      <div
+                        className="bg-primary rounded-t-lg w-full transition-all duration-300 group-hover:brightness-125 group-hover:scale-x-105"
                         style={{ height: `${Math.max(percentage, 10)}%` }}
-                        title={`${cat.stock} unidades`}
+                        title={`Promedio: ${item.avg} | Total: ${item.total}`}
                       ></div>
                     </div>
-                    <span 
-                      className="font-label-caps text-label-caps text-on-surface-variant text-[11px] truncate w-full text-center mt-1" 
-                      title={cat.category}
+                    <span
+                      className="font-label-caps text-label-caps text-on-surface-variant text-[11px] truncate w-full text-center mt-1"
+                      title={`${item.day}: promedio ${item.avg}`}
                     >
-                      {cat.category}
+                      {item.day}
                     </span>
                   </div>
                 );
@@ -212,7 +226,7 @@ export default function Dashboard({ user, setActiveTab }) {
             </div>
           ) : (
             <div className="flex-grow flex items-center justify-center text-on-surface-variant">
-              <span>No hay categorías registradas</span>
+              <span>No hay datos de despacho para el filtro seleccionado</span>
             </div>
           )}
         </div>
@@ -263,8 +277,8 @@ export default function Dashboard({ user, setActiveTab }) {
       <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-sm">
         <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
           <div>
-            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Monitor de Inventario Crítico</h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant">Productos por debajo del stock mínimo de seguridad</p>
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Monitor de Inventario CrÃ­tico</h3>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">Productos por debajo del stock mÃ­nimo de seguridad</p>
           </div>
           <button 
             onClick={() => setActiveTab('inventory')}
@@ -281,9 +295,9 @@ export default function Dashboard({ user, setActiveTab }) {
                 <tr>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Medicamento / Item</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Stock Actual</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Mínimo Requerido</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">MÃ­nimo Requerido</th>
                   <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant">Estado</th>
-                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant text-right">Acción</th>
+                  <th className="px-lg py-sm font-label-caps text-label-caps text-on-surface-variant text-right">AcciÃ³n</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
@@ -325,7 +339,7 @@ export default function Dashboard({ user, setActiveTab }) {
         ) : (
           <div className="text-center p-xl text-on-surface-variant">
             <span className="material-symbols-outlined text-4xl text-secondary mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            <p className="font-body-lg">¡Felicidades! Todo el almacén cuenta con niveles de stock óptimos.</p>
+            <p className="font-body-lg">Â¡Felicidades! Todo el almacÃ©n cuenta con niveles de stock Ã³ptimos.</p>
           </div>
         )}
       </div>
@@ -333,3 +347,4 @@ export default function Dashboard({ user, setActiveTab }) {
     </div>
   );
 }
+

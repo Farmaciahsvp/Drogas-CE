@@ -57,6 +57,70 @@ const stableRecCodeFromClientId = (clientId) => {
   return `REC-${lastSix}`;
 };
 
+const CATEGORY_FILTERS = {
+  all: 'Todos',
+  psychotropic: 'Psicotrópicos',
+  narcotic: 'Estupefacientes',
+  other: 'Otros'
+};
+
+const normalizeCategoryBucket = (rawCategory) => {
+  const c = String(rawCategory || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (c.includes('psicotrop')) return 'psychotropic';
+  if (c.includes('estupefac')) return 'narcotic';
+  return 'other';
+};
+
+const buildWeeklyDispenseAverages = (prescriptions) => {
+  const dayLabels = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+  const byFilter = {
+    all: Array(7).fill(0),
+    psychotropic: Array(7).fill(0),
+    narcotic: Array(7).fill(0),
+    other: Array(7).fill(0)
+  };
+  const dateOccurrencesByFilter = {
+    all: Array.from({ length: 7 }, () => new Set()),
+    psychotropic: Array.from({ length: 7 }, () => new Set()),
+    narcotic: Array.from({ length: 7 }, () => new Set()),
+    other: Array.from({ length: 7 }, () => new Set())
+  };
+
+  (prescriptions || []).forEach((p) => {
+    const created = new Date(p.created_at);
+    if (Number.isNaN(created.getTime())) return;
+    const day = created.getDay();
+    const dateKey = created.toISOString().slice(0, 10);
+    const categories = (p.prescription_items || [])
+      .map((it) => normalizeCategoryBucket(it?.medications?.category))
+      .filter(Boolean);
+    const filtersForRx = new Set(['all', ...categories]);
+
+    filtersForRx.forEach((filterKey) => {
+      byFilter[filterKey][day] += 1;
+      dateOccurrencesByFilter[filterKey][day].add(dateKey);
+    });
+  });
+
+  const output = {};
+  Object.keys(byFilter).forEach((filterKey) => {
+    output[filterKey] = dayLabels.map((dayLabel, dayIndex) => {
+      const total = byFilter[filterKey][dayIndex];
+      const occurrences = dateOccurrencesByFilter[filterKey][dayIndex].size || 1;
+      return {
+        day: dayLabel,
+        avg: Number((total / occurrences).toFixed(2)),
+        total
+      };
+    });
+  });
+
+  return {
+    filters: CATEGORY_FILTERS,
+    series: output
+  };
+};
+
 const cacheUserScope = () => {
   try {
     const current = getCurrentUser();
@@ -692,13 +756,17 @@ export const api = {
       }));
 
       const loadPromise = (async () => {
-        const [statsRes, txRes] = await Promise.all([
+        const [statsRes, txRes, dispensedRes] = await Promise.all([
           supabase.rpc('get_dashboard_stats'),
           supabase
             .from('transactions')
             .select('id, type, quantity, created_at, medications(name, active_principle, unit), profiles(name), notes')
             .order('created_at', { ascending: false })
-            .limit(5)
+            .limit(5),
+          supabase
+            .from('prescriptions')
+            .select('id, created_at, status, prescription_items(medications(category))')
+            .eq('status', 'dispensed')
         ]);
         let txRows = txRes.data;
         let txErr = txRes.error;
@@ -713,6 +781,9 @@ export const api = {
         }
         if (txErr) throw new Error(txErr.message || 'Error al cargar transacciones recientes.');
         const recentTx = mapRecentTransactions(txRows);
+        const weeklyDispenseAverages = dispensedRes.error
+          ? { filters: CATEGORY_FILTERS, series: { all: [], psychotropic: [], narcotic: [], other: [] } }
+          : buildWeeklyDispenseAverages(dispensedRes.data || []);
 
         if (statsRes.error) {
           const [medRes, prescRes] = await Promise.all([
@@ -745,7 +816,8 @@ export const api = {
               .filter((m) => (m.stock || 0) <= (m.min_stock || 0))
               .sort((a, b) => (a.stock || 0) - (b.stock || 0))
               .slice(0, 5),
-            recentTransactions: recentTx
+            recentTransactions: recentTx,
+            weeklyDispenseAverages
           };
           writeCache('dashboard:stats', payload);
           return payload;
@@ -753,7 +825,8 @@ export const api = {
 
         const payload = {
           ...(statsRes.data || {}),
-          recentTransactions: recentTx
+          recentTransactions: recentTx,
+          weeklyDispenseAverages
         };
         writeCache('dashboard:stats', payload);
         return payload;
