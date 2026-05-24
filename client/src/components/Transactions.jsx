@@ -60,8 +60,8 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
   // Filtrado de transacciones para la vista de detalle
   const filteredTransactions = transactions.filter((tx) => {
     // Filtrar por el medicamento seleccionado
-    const matchesMedication = selectedMed 
-      ? (tx.medication_id === selectedMed.id || tx.medication_name === selectedMed.name)
+    const matchesMedicationFilter = selectedMed 
+      ? matchesMedication(tx, selectedMed)
       : true;
 
     const matchesType = typeFilter === 'all' || tx.type === typeFilter;
@@ -72,7 +72,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
       ? tx.user_name.toLowerCase().includes(activeSearch.toLowerCase()) || (tx.notes && tx.notes.toLowerCase().includes(activeSearch.toLowerCase()))
       : true;
 
-    return matchesMedication && matchesType && matchesSearch;
+    return matchesMedicationFilter && matchesType && matchesSearch;
   });
 
   if (loading && medications.length === 0) {
