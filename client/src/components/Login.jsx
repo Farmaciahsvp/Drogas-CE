@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import medicationHero from '../assets/medication_hero.png';
+
+const RECENT_USERS_KEY = 'drogasce_recent_users';
+const MAX_RECENT_USERS = 5;
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -8,6 +11,33 @@ export default function Login({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recentUsers, setRecentUsers] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_USERS_KEY);
+      if (!stored) return;
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setRecentUsers(parsed.filter((u) => typeof u === 'string' && u.trim()).slice(0, MAX_RECENT_USERS));
+      }
+    } catch {
+      setRecentUsers([]);
+    }
+  }, []);
+
+  const saveRecentUser = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return;
+    const next = [normalized, ...recentUsers.filter((u) => u !== normalized)].slice(0, MAX_RECENT_USERS);
+    setRecentUsers(next);
+    localStorage.setItem(RECENT_USERS_KEY, JSON.stringify(next));
+  };
+
+  const clearRecentUsers = () => {
+    setRecentUsers([]);
+    localStorage.removeItem(RECENT_USERS_KEY);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,6 +51,7 @@ export default function Login({ onLoginSuccess }) {
 
     try {
       const response = await api.auth.login(email, password);
+      saveRecentUser(email);
       onLoginSuccess(response.user);
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión. Verifique sus credenciales.');
@@ -134,13 +165,32 @@ export default function Login({ onLoginSuccess }) {
                 <input
                   type="email"
                   required
+                  list="recent-users"
                   className="w-full bg-surface-variant border-none rounded-lg pl-10 pr-4 py-2.5 text-on-surface placeholder:text-on-surface-variant focus:ring-1 focus:ring-primary text-sm focus:outline-none"
                   placeholder="Ej. usuario@hospital.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                 />
+                <datalist id="recent-users">
+                  {recentUsers.map((user) => (
+                    <option key={user} value={user} />
+                  ))}
+                </datalist>
               </div>
+              {recentUsers.length > 0 && (
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[11px] text-on-surface-variant">Usuarios recientes disponibles en autocompletar</span>
+                  <button
+                    type="button"
+                    onClick={clearRecentUsers}
+                    className="text-[11px] text-primary hover:underline"
+                    disabled={loading}
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-xs">
