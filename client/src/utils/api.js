@@ -2,6 +2,8 @@
 import { supabase } from './supabase';
 const OFFLINE_QUEUE_KEY = 'offline_sync_queue_v1';
 const DASHBOARD_TIMEOUT_MS = 10000;
+const SESSION_CACHE_TTL_MS = 120000;
+const SESSION_CACHE_PREFIX = 'drogasce_cache_v1:';
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
@@ -53,6 +55,26 @@ const stableRecCodeFromClientId = (clientId) => {
   const digits = String(clientId || '').replace(/\D/g, '');
   const lastSix = digits.slice(-6).padStart(6, '0');
   return `REC-${lastSix}`;
+};
+
+const cacheKey = (k) => `${SESSION_CACHE_PREFIX}${k}`;
+const readCache = (k) => {
+  try {
+    const raw = localStorage.getItem(cacheKey(k));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts > SESSION_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+const writeCache = (k, data) => {
+  try {
+    localStorage.setItem(cacheKey(k), JSON.stringify({ ts: Date.now(), data }));
+  } catch {
+    // ignore cache write errors
+  }
 };
 
 export const flushOfflineQueue = async () => {
@@ -177,11 +199,14 @@ export const api = {
   },
   inventory: {
     getAll: async () => {
+      const cached = readCache('inventory:all');
+      if (cached) return cached;
       const { data, error } = await supabase
         .from('medications')
         .select('id, name, active_principle, category, stock, unit, min_stock, shelf_location')
         .order('name', { ascending: true });
       if (error) throw new Error(error.message || 'Error al cargar inventario.');
+      writeCache('inventory:all', data || []);
       return data;
     },
     create: async (medicationData, fromReplay = false) => {
@@ -305,6 +330,9 @@ export const api = {
   },
   prescriptions: {
     getAll: async (status = '', scope = 'recent') => {
+      const cKey = `prescriptions:${status || 'all'}:${scope}`;
+      const cached = readCache(cKey);
+      if (cached) return cached;
       const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
       let query = supabase
         .from('prescriptions')
@@ -314,13 +342,15 @@ export const api = {
       if (status) query = query.eq('status', status);
       const { data, error } = await query;
       if (error) throw new Error(error.message || 'Error al cargar recetas.');
-      return (data || []).map((p) => ({
+      const mapped = (data || []).map((p) => ({
         ...p,
         medication_code: p.prescription_items?.[0]?.medications?.name || '',
         medication_name: p.prescription_items?.[0]?.medications?.active_principle || '',
         medication_unit: p.prescription_items?.[0]?.medications?.unit || '',
         quantity_dispensed: p.prescription_items?.[0]?.quantity_dispensed || 0
       }));
+      writeCache(cKey, mapped);
+      return mapped;
     },
     getByCode: async (code) => {
       const { data: presc, error: prescError } = await supabase
@@ -423,6 +453,9 @@ export const api = {
   },
   transactions: {
     getAll: async (scope = 'recent') => {
+      const cKey = `transactions:${scope}`;
+      const cached = readCache(cKey);
+      if (cached) return cached;
       const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
       let query = supabase
         .from('transactions')
@@ -450,7 +483,7 @@ export const api = {
           }, {});
         }
 
-        return txRows.map((t) => ({
+        const mapped = txRows.map((t) => ({
           id: t.id,
           medication_id: t.medication_id,
           type: t.type,
@@ -465,6 +498,8 @@ export const api = {
           unit: t.medications?.unit,
           user_name: t.profiles?.name
         }));
+        writeCache(cKey, mapped);
+        return mapped;
       }
       throw new Error(error.message || 'Error al cargar transacciones.');
     }
@@ -502,6 +537,9 @@ export const api = {
   },
   replenish: {
     getAll: async (scope = 'recent') => {
+      const cKey = `replenish:${scope}`;
+      const cached = readCache(cKey);
+      if (cached) return cached;
       const sinceIso = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)).toISOString();
       let query = supabase
         .from('replenishment_requests')
@@ -510,7 +548,7 @@ export const api = {
       if (scope !== 'all') query = query.gte('created_at', sinceIso);
       const { data, error } = await query;
       if (!error) {
-        return (data || []).map((r) => ({
+        const mapped = (data || []).map((r) => ({
           id: r.id,
           medication_id: r.medication_id,
           quantity: r.quantity,
@@ -523,6 +561,8 @@ export const api = {
           unit: r.medications?.unit,
           user_name: r.profiles?.name
         }));
+        writeCache(cKey, mapped);
+        return mapped;
       }
       throw new Error(error.message || 'Error al cargar solicitudes de reposicion.');
     },
@@ -562,6 +602,8 @@ export const api = {
   },
   dashboard: {
     getStats: async () => {
+      const cached = readCache('dashboard:stats');
+      if (cached) return cached;
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Tiempo de espera agotado al cargar dashboard.')), DASHBOARD_TIMEOUT_MS);
       });
@@ -625,13 +667,26 @@ export const api = {
           };
         }
 
-        return {
+        const payload = {
           ...(statsRes.data || {}),
           recentTransactions: recentTx
         };
+        writeCache('dashboard:stats', payload);
+        return payload;
       })();
 
       return Promise.race([loadPromise, timeoutPromise]);
+    }
+  },
+  warmup: {
+    primeAfterLogin: async () => {
+      await Promise.allSettled([
+        api.dashboard.getStats(),
+        api.inventory.getAll(),
+        api.prescriptions.getAll('', 'recent'),
+        api.transactions.getAll('recent'),
+        api.replenish.getAll('recent')
+      ]);
     }
   }
 };

@@ -108,6 +108,7 @@ function App() {
       setUser(u);
       setActiveTab('dashboard');
       setSearchTerm('');
+      api.warmup.primeAfterLogin().catch(() => {});
     }} />;
   }
 
