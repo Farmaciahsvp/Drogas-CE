@@ -1,6 +1,7 @@
 ﻿const API_URL = 'http://localhost:5000/api';
 import { supabase } from './supabase';
 const OFFLINE_QUEUE_KEY = 'offline_sync_queue_v1';
+const DASHBOARD_TIMEOUT_MS = 10000;
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
@@ -553,14 +554,23 @@ export const api = {
   },
   dashboard: {
     getStats: async () => {
-      const [medRes, prescRes, txRes] = await Promise.all([
-        supabase.from('medications').select('id, name, active_principle, category, stock, min_stock, unit'),
-        supabase.from('prescriptions').select('id, status'),
-        supabase.from('transactions').select('id, type, quantity, created_at, medications(name, active_principle, unit), profiles(name), notes').order('created_at', { ascending: false }).limit(5)
-      ]);
-      if (!medRes.error && !prescRes.error && !txRes.error) {
-        const meds = medRes.data || [];
-        const prescs = prescRes.data || [];
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Tiempo de espera agotado al cargar dashboard.')), DASHBOARD_TIMEOUT_MS);
+      });
+
+      const loadPromise = (async () => {
+        const [statsRes, txRes] = await Promise.all([
+          supabase.rpc('get_dashboard_stats'),
+          supabase
+            .from('transactions')
+            .select('id, type, quantity, created_at, medications(name, active_principle, unit), profiles(name), notes')
+            .order('created_at', { ascending: false })
+            .limit(5)
+        ]);
+
+        if (statsRes.error) throw new Error(statsRes.error.message || 'Error al cargar estadisticas.');
+        if (txRes.error) throw new Error(txRes.error.message || 'Error al cargar transacciones recientes.');
+
         const recentTx = (txRes.data || []).map((t) => ({
           id: t.id,
           type: t.type,
@@ -572,43 +582,13 @@ export const api = {
           notes: t.notes
         }));
 
-        const totalMedications = meds.length;
-        const totalStock = meds.reduce((acc, m) => acc + (m.stock || 0), 0);
-        const totalAmpollas = meds
-          .filter((m) => (m.unit || '').toLowerCase() === 'ampollas')
-          .reduce((acc, m) => acc + (m.stock || 0), 0);
-        const totalTabletas = meds
-          .filter((m) => (m.unit || '').toLowerCase() === 'tabletas')
-          .reduce((acc, m) => acc + (m.stock || 0), 0);
-        const lowStockAlerts = meds.filter((m) => (m.stock || 0) <= (m.min_stock || 0)).length;
-        const pendingPrescriptions = prescs.filter((p) => p.status === 'pending').length;
-
-        const byCategory = meds.reduce((acc, m) => {
-          if (!acc[m.category]) acc[m.category] = { category: m.category, count: 0, stock: 0 };
-          acc[m.category].count += 1;
-          acc[m.category].stock += m.stock || 0;
-          return acc;
-        }, {});
-        const categoryDistribution = Object.values(byCategory);
-
-        const criticalMeds = meds
-          .filter((m) => (m.stock || 0) <= (m.min_stock || 0))
-          .sort((a, b) => (a.stock || 0) - (b.stock || 0))
-          .slice(0, 5);
-
         return {
-          totalMedications,
-          totalStock,
-          totalAmpollas,
-          totalTabletas,
-          lowStockAlerts,
-          pendingPrescriptions,
-          recentTransactions: recentTx,
-          categoryDistribution,
-          criticalMeds
+          ...(statsRes.data || {}),
+          recentTransactions: recentTx
         };
-      }
-      throw new Error('No se pudieron calcular estadisticas desde Supabase.');
+      })();
+
+      return Promise.race([loadPromise, timeoutPromise]);
     }
   }
 };
