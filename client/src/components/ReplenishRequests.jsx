@@ -43,13 +43,15 @@ export default function ReplenishRequests({ user }) {
 
   const replenishmentRows = useMemo(() => {
     return (medications || []).map((m) => {
-      const cuota = Number(m.initial_stock || 0);
+      const parsed = parseMedicationCodeAndLabel(m);
       const saldo = Number(m.stock || 0);
+      // Fallback para registros antiguos sin initial_stock poblado.
+      const cuota = Number(m.initial_stock || 0) > 0 ? Number(m.initial_stock) : saldo;
       const aReponer = Math.max(cuota - saldo, 0);
       return {
         id: m.id,
-        code: m.code || '-',
-        medication: `${m.name || '-'}${m.active_principle ? ` (${m.active_principle})` : ''}`,
+        code: parsed.code,
+        medication: `${parsed.label}${m.active_principle ? ` (${m.active_principle})` : ''}`,
         cuota,
         saldo,
         aReponer,
@@ -482,4 +484,23 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function parseMedicationCodeAndLabel(medication) {
+  const explicitCode = String(medication?.code || '').trim();
+  const rawName = String(medication?.name || '').trim();
+  const fallbackLabel = rawName || '-';
+
+  if (explicitCode) {
+    return { code: explicitCode, label: fallbackLabel };
+  }
+
+  const match = rawName.match(/^([0-9]{2,4}-[0-9]{2,6}-[0-9]{2,6})\s*(.*)$/);
+  if (match) {
+    const code = match[1];
+    const rest = (match[2] || '').trim();
+    return { code, label: rest || code };
+  }
+
+  return { code: '-', label: fallbackLabel };
 }
