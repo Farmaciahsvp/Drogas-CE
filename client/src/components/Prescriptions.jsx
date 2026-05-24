@@ -206,7 +206,7 @@ export default function Prescriptions({ user }) {
                     {getStatusBadge(presc.status)}
                   </div>
                   <div>
-                    <p className="font-body-lg text-body-lg text-on-surface font-semibold truncate leading-tight">Medicamento: {presc.medication_name || 'No disponible'}</p>
+                    <p className="font-body-lg text-body-lg text-on-surface font-semibold truncate leading-tight">Medicamento: {presc.medication_code || 'No disponible'} {presc.medication_name ? `- ${presc.medication_name}` : ''}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">DNI: {presc.patient_id}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Farmacéutico: {user?.name || 'No disponible'}</p>
                   </div>
