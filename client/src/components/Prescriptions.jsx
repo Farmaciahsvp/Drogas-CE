@@ -16,6 +16,9 @@ export default function Prescriptions({ user }) {
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [successModal, setSuccessModal] = useState({ open: false, recipeNumber: '' });
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [medFilter, setMedFilter] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -116,6 +119,24 @@ export default function Prescriptions({ user }) {
 
   const selectedMedication = medications.find((m) => m.id === parseInt(selectedMedId));
   const formatRecipeNumber = (patientName = '') => patientName.replace(/^Receta\s*/i, '').trim();
+  const filteredRebajos = prescriptions.filter((presc) => {
+    const matchesMedication =
+      !medFilter ||
+      String(presc.medication_code || '') === medFilter;
+
+    const createdAt = new Date(presc.created_at);
+    const from = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+    const to = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
+    const matchesFrom = !from || createdAt >= from;
+    const matchesTo = !to || createdAt <= to;
+
+    return matchesMedication && matchesFrom && matchesTo;
+  });
+  const rebajoMedications = [...new Set(
+    (prescriptions || [])
+      .map((p) => p.medication_code)
+      .filter(Boolean)
+  )];
 
   if (loading && medications.length === 0) {
     return (
@@ -198,9 +219,37 @@ export default function Prescriptions({ user }) {
             <span className="material-symbols-outlined text-on-surface-variant text-2xl">history</span>
             <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Historial de Rebajos</h3>
           </div>
-          {prescriptions.length > 0 ? (
+          <div className="grid grid-cols-1 gap-sm mb-md">
+            <div className="grid grid-cols-2 gap-sm">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                title="Desde"
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                title="Hasta"
+              />
+            </div>
+            <select
+              value={medFilter}
+              onChange={(e) => setMedFilter(e.target.value)}
+              className="bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+            >
+              <option value="">Todos los medicamentos</option>
+              {rebajoMedications.map((code) => (
+                <option key={code} value={code}>{code}</option>
+              ))}
+            </select>
+          </div>
+          {filteredRebajos.length > 0 ? (
             <div className="space-y-sm flex-1 overflow-y-auto pr-sm scrollbar-thin">
-              {prescriptions.map((presc) => (
+              {filteredRebajos.map((presc) => (
                 <div key={presc.id} className="bg-surface-container-low p-sm rounded border border-outline-variant flex flex-col gap-xs hover:bg-surface-variant/30 transition-all">
                   <div className="flex justify-between items-center">
                     <span className="font-data-mono text-data-mono text-primary font-bold text-sm">{formatRecipeNumber(presc.patient_name)}</span>
@@ -225,7 +274,7 @@ export default function Prescriptions({ user }) {
             </div>
           ) : (
             <div className="flex-grow flex items-center justify-center text-on-surface-variant text-center">
-              <p>No se registran recetas digitalizadas</p>
+              <p>No se registran rebajos con los filtros seleccionados</p>
             </div>
           )}
         </div>
