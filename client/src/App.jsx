@@ -9,6 +9,8 @@ import Transactions from './components/Transactions';
 import Settings from './components/Settings';
 import ReplenishRequests from './components/ReplenishRequests';
 
+const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+
 function App() {
   const [user, setUser] = useState(getCurrentUser());
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -29,6 +31,40 @@ function App() {
     setUser(null);
     setActiveTab('dashboard');
   };
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    let timeoutId;
+    const resetInactivityTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        handleLogout();
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetInactivityTimer, { passive: true });
+    });
+
+    const onEscLogout = (event) => {
+      if (event.key === 'Escape') {
+        handleLogout();
+      }
+    };
+    window.addEventListener('keydown', onEscLogout);
+
+    resetInactivityTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      });
+      window.removeEventListener('keydown', onEscLogout);
+    };
+  }, [user]);
 
   const renderActiveView = () => {
     switch (activeTab) {
