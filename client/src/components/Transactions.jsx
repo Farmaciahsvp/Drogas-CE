@@ -348,7 +348,7 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
                             {isIngreso ? '+' : '-'}{tx.quantity} {selectedMed.unit}
                           </td>
                           <td className="px-lg py-md text-on-surface-variant font-medium print-text text-center">{tx.user_name}</td>
-                          <td className="px-lg py-md text-on-surface-variant text-sm print-text text-center">{tx.notes}</td>
+                          <td className="px-lg py-md text-on-surface-variant text-sm print-text text-center">{tx.reference_recipe_number ? String(tx.notes || '').replace(/REC-\\d{6}/g, tx.reference_recipe_number) : tx.notes}</td>
                         </tr>
                       );
                     })}
@@ -423,4 +423,5 @@ export default function Transactions({ user, searchTerm: globalSearchTerm = '' }
     </div>
   );
 }
+
 

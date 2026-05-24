@@ -358,7 +358,26 @@ export const api = {
         .select('id, medication_id, type, quantity, reference_type, reference_id, user_id, created_at, notes, medications(name, unit), profiles(name)')
         .order('created_at', { ascending: false });
       if (!error) {
-        return (data || []).map((t) => ({
+        const txRows = data || [];
+        const rxCodes = [...new Set(
+          txRows
+            .filter((t) => t.reference_type === 'prescription' && t.reference_id)
+            .map((t) => t.reference_id)
+        )];
+
+        let rxMap = {};
+        if (rxCodes.length > 0) {
+          const { data: rxRows } = await supabase
+            .from('prescriptions')
+            .select('code, patient_name')
+            .in('code', rxCodes);
+          rxMap = (rxRows || []).reduce((acc, r) => {
+            acc[r.code] = String(r.patient_name || '').replace(/^Receta\\s*/i, '').trim();
+            return acc;
+          }, {});
+        }
+
+        return txRows.map((t) => ({
           id: t.id,
           medication_id: t.medication_id,
           type: t.type,
@@ -368,6 +387,7 @@ export const api = {
           user_id: t.user_id,
           timestamp: t.created_at,
           notes: t.notes,
+          reference_recipe_number: t.reference_type === 'prescription' ? (rxMap[t.reference_id] || null) : null,
           medication_name: t.medications?.name,
           unit: t.medications?.unit,
           user_name: t.profiles?.name
