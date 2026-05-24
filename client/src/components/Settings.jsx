@@ -518,13 +518,25 @@ export default function Settings({ user }) {
             <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>description</span>
             <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Reporte de Logs</h3>
           </div>
-          <button
-            onClick={loadLogs}
-            className="h-9 px-sm rounded bg-surface-container-high border border-outline-variant text-on-surface text-xs font-semibold flex items-center gap-xs"
-          >
-            <RefreshCw size={14} />
-            Actualizar
-          </button>
+          <div className="flex gap-xs">
+            <button
+              onClick={loadLogs}
+              className="h-9 px-sm rounded bg-surface-container-high border border-outline-variant text-on-surface text-xs font-semibold flex items-center gap-xs"
+            >
+              <RefreshCw size={14} />
+              Actualizar
+            </button>
+            <button
+              onClick={() => {
+                diagnostics.clearApiCalls();
+                loadLogs();
+                loadApiDiagnostics();
+              }}
+              className="h-9 px-sm rounded bg-error-container/20 border border-error/30 text-error text-xs font-semibold"
+            >
+              Borrar Logs
+            </button>
+          </div>
         </div>
 
         {logError && (
