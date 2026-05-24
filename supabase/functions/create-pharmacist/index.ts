@@ -92,14 +92,6 @@ Deno.serve(async (req) => {
 
     let userId = created.user?.id;
     if (createError) {
-      const alreadyExists = createError.message.toLowerCase().includes('already') || createError.message.toLowerCase().includes('registered');
-      if (!alreadyExists) {
-        return new Response(JSON.stringify({ error: createError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
       const { data: existingUsers, error: listError } = await adminClient.auth.admin.listUsers();
       if (listError) {
         return new Response(JSON.stringify({ error: listError.message }), {
@@ -109,13 +101,14 @@ Deno.serve(async (req) => {
       }
 
       const existing = existingUsers.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-      if (!existing?.id) {
-        return new Response(JSON.stringify({ error: 'Usuario existente no encontrado para actualizar.' }), {
-          status: 500,
+      if (existing?.id) {
+        userId = existing.id;
+      } else {
+        return new Response(JSON.stringify({ error: createError.message || 'No se pudo crear ni localizar usuario existente.' }), {
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      userId = existing.id;
     }
 
     if (!userId) {
