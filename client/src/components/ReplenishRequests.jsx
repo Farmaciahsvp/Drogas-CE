@@ -489,9 +489,10 @@ function escapeHtml(value) {
 function parseMedicationCodeAndLabel(medication) {
   const explicitCode = String(medication?.code || '').trim();
   const rawName = String(medication?.name || '').trim();
+  const activePrinciple = String(medication?.active_principle || '').trim();
   const strippedCode = rawName.replace(/^([0-9]{2,4}-[0-9]{2,6}-[0-9]{2,6})\s*/, '').trim();
   const strippedParens = strippedCode.replace(/^\((.*)\)$/, '$1').trim();
-  const fallbackLabel = strippedParens || strippedCode || rawName || '-';
+  const fallbackLabel = strippedParens || strippedCode || activePrinciple || rawName || '-';
 
   if (explicitCode) {
     return { code: explicitCode, label: fallbackLabel };
@@ -501,8 +502,8 @@ function parseMedicationCodeAndLabel(medication) {
   if (match) {
     const code = match[1];
     const rest = (match[2] || '').trim();
-    return { code, label: rest || code };
+    return { code, label: rest || activePrinciple || code };
   }
 
-  return { code: '-', label: fallbackLabel };
+  return { code: explicitCode || '-', label: fallbackLabel };
 }
