@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { api, diagnostics } from '../utils/api';
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function Settings({ user }) {
@@ -16,6 +16,8 @@ export default function Settings({ user }) {
   const [logSearch, setLogSearch] = useState('');
   const [logFromDate, setLogFromDate] = useState('');
   const [logToDate, setLogToDate] = useState('');
+  const [apiHealth, setApiHealth] = useState([]);
+  const [apiRecentErrors, setApiRecentErrors] = useState([]);
 
   // Formulario de Farmacéutico
   const [pharmForm, setPharmForm] = useState({
@@ -59,9 +61,21 @@ export default function Settings({ user }) {
     }
   };
 
+  const loadApiDiagnostics = () => {
+    const summary = diagnostics.summarizeApiCalls();
+    const recentErrors = diagnostics
+      .getApiCalls()
+      .filter((r) => !r.ok)
+      .slice(-20)
+      .reverse();
+    setApiHealth(summary);
+    setApiRecentErrors(recentErrors);
+  };
+
   useEffect(() => {
     loadPharmacists();
     loadLogs();
+    loadApiDiagnostics();
   }, []);
 
   // Registro de farmacéutico
@@ -418,6 +432,76 @@ export default function Settings({ user }) {
           </form>
         </div>
 
+      </div>
+
+      <div className="bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm space-y-md">
+        <div className="flex items-center justify-between gap-sm border-b border-outline-variant pb-xs">
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined text-warning text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>monitoring</span>
+            <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Salud de API (Diagnóstico)</h3>
+          </div>
+          <div className="flex gap-xs">
+            <button
+              onClick={loadApiDiagnostics}
+              className="h-9 px-sm rounded bg-surface-container-high border border-outline-variant text-on-surface text-xs font-semibold"
+            >
+              Refrescar
+            </button>
+            <button
+              onClick={() => {
+                diagnostics.clearApiCalls();
+                loadApiDiagnostics();
+              }}
+              className="h-9 px-sm rounded bg-error-container/20 border border-error/30 text-error text-xs font-semibold"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead className="bg-surface-container-high/40 border-b border-outline-variant">
+              <tr>
+                <th className="px-sm py-sm">Operación</th>
+                <th className="px-sm py-sm">Llamadas</th>
+                <th className="px-sm py-sm">Errores</th>
+                <th className="px-sm py-sm">Promedio ms</th>
+                <th className="px-sm py-sm">P95 ms</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant">
+              {apiHealth.length === 0 ? (
+                <tr>
+                  <td className="px-sm py-sm text-on-surface-variant" colSpan={5}>Sin métricas registradas aún.</td>
+                </tr>
+              ) : apiHealth.slice(0, 20).map((row) => (
+                <tr key={row.scope}>
+                  <td className="px-sm py-sm font-data-mono text-data-mono">{row.scope}</td>
+                  <td className="px-sm py-sm">{row.count}</td>
+                  <td className={`px-sm py-sm ${row.errors > 0 ? 'text-error font-semibold' : 'text-secondary'}`}>{row.errors}</td>
+                  <td className="px-sm py-sm">{row.avgMs}</td>
+                  <td className="px-sm py-sm">{row.p95Ms}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {apiRecentErrors.length > 0 && (
+          <div className="space-y-xs">
+            <p className="text-xs font-semibold text-error">Últimos errores API</p>
+            <div className="max-h-40 overflow-y-auto space-y-xs pr-xs scrollbar-thin">
+              {apiRecentErrors.map((e, idx) => (
+                <div key={`${e.at}-${idx}`} className="bg-error-container/10 border border-error/20 rounded p-xs text-[11px]">
+                  <p className="font-data-mono text-data-mono">{e.scope}</p>
+                  <p className="text-on-surface-variant">{e.at} | {e.ms}ms</p>
+                  <p className="text-error">{e.error}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-surface-container p-lg rounded-xl border border-outline-variant shadow-sm space-y-md">

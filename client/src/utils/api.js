@@ -1,11 +1,13 @@
 ﻿const API_URL = 'http://localhost:5000/api';
 import { supabase } from './supabase';
 const OFFLINE_QUEUE_KEY = 'offline_sync_queue_v1';
+const API_DIAGNOSTICS_KEY = 'api_diagnostics_v1';
 const DASHBOARD_TIMEOUT_MS = 10000;
 const SESSION_CACHE_TTL_MS = 120000;
 const SESSION_CACHE_PREFIX = 'drogasce_cache_v1:';
 const WEEKLY_DISPENSE_WINDOW_DAYS = 90;
 const HISTORY_PAGE_SIZE = 100;
+const API_DIAGNOSTICS_MAX = 300;
 
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
@@ -190,6 +192,29 @@ const clearAllAppCache = () => {
   } catch {
     // ignore cache clear errors
   }
+};
+
+const readApiDiagnostics = () => {
+  try {
+    const raw = localStorage.getItem(API_DIAGNOSTICS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeApiDiagnostics = (entries) => {
+  try {
+    localStorage.setItem(API_DIAGNOSTICS_KEY, JSON.stringify(entries.slice(-API_DIAGNOSTICS_MAX)));
+  } catch {
+    // ignore diagnostics write errors
+  }
+};
+
+const pushApiDiagnostic = (entry) => {
+  const current = readApiDiagnostics();
+  current.push(entry);
+  writeApiDiagnostics(current);
 };
 
 export const flushOfflineQueue = async () => {
@@ -963,6 +988,75 @@ export const api = {
         api.prescriptions.getPage('', { scope: 'recent', offset: 0, limit: 50 })
       ]);
     }
+  }
+};
+
+const instrumentApiTree = (obj, prefix) => {
+  Object.keys(obj).forEach((key) => {
+    const value = obj[key];
+    const scope = `${prefix}.${key}`;
+    if (typeof value === 'function') {
+      if (value.__instrumented) return;
+      const original = value;
+      const wrapped = async (...args) => {
+        const startedAt = performance.now();
+        const stamp = new Date().toISOString();
+        try {
+          const result = await original(...args);
+          pushApiDiagnostic({
+            scope,
+            ok: true,
+            ms: Number((performance.now() - startedAt).toFixed(2)),
+            at: stamp
+          });
+          return result;
+        } catch (error) {
+          pushApiDiagnostic({
+            scope,
+            ok: false,
+            ms: Number((performance.now() - startedAt).toFixed(2)),
+            at: stamp,
+            error: String(error?.message || error || 'unknown')
+          });
+          throw error;
+        }
+      };
+      wrapped.__instrumented = true;
+      obj[key] = wrapped;
+      return;
+    }
+    if (value && typeof value === 'object') {
+      instrumentApiTree(value, scope);
+    }
+  });
+};
+
+instrumentApiTree(api, 'api');
+
+export const diagnostics = {
+  getApiCalls: () => readApiDiagnostics(),
+  clearApiCalls: () => writeApiDiagnostics([]),
+  summarizeApiCalls: () => {
+    const rows = readApiDiagnostics();
+    const grouped = rows.reduce((acc, r) => {
+      if (!acc[r.scope]) acc[r.scope] = { scope: r.scope, count: 0, errors: 0, totalMs: 0, p95: [] };
+      acc[r.scope].count += 1;
+      acc[r.scope].totalMs += Number(r.ms || 0);
+      acc[r.scope].p95.push(Number(r.ms || 0));
+      if (!r.ok) acc[r.scope].errors += 1;
+      return acc;
+    }, {});
+    return Object.values(grouped).map((g) => {
+      const sorted = g.p95.sort((a, b) => a - b);
+      const idx = Math.max(0, Math.ceil(sorted.length * 0.95) - 1);
+      return {
+        scope: g.scope,
+        count: g.count,
+        errors: g.errors,
+        avgMs: Number((g.totalMs / Math.max(g.count, 1)).toFixed(2)),
+        p95Ms: Number((sorted[idx] || 0).toFixed(2))
+      };
+    }).sort((a, b) => b.errors - a.errors || b.p95Ms - a.p95Ms);
   }
 };
 
