@@ -72,24 +72,46 @@ Deno.serve(async (req) => {
     }
     const email = `${normalizedUsername}@drogasce.local`;
 
+    const cleanName = String(name).trim();
+
     const { data: created, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: {
         username: normalizedUsername,
-        name: String(name).trim()
+        name: cleanName
       }
     });
 
+    let userId = created.user?.id;
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      const alreadyExists = createError.message.toLowerCase().includes('already') || createError.message.toLowerCase().includes('registered');
+      if (!alreadyExists) {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data: existingUsers, error: listError } = await adminClient.auth.admin.listUsers();
+      if (listError) {
+        return new Response(JSON.stringify({ error: listError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const existing = existingUsers.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      if (!existing?.id) {
+        return new Response(JSON.stringify({ error: 'Usuario existente no encontrado para actualizar.' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      userId = existing.id;
     }
 
-    const userId = created.user?.id;
     if (!userId) {
       return new Response(JSON.stringify({ error: 'No se pudo crear usuario.' }), {
         status: 500,
@@ -97,10 +119,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    await adminClient.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        username: normalizedUsername,
+        name: cleanName
+      }
+    });
+
     await adminClient
       .from('profiles')
-      .update({ role: 'farmaceutico', username: normalizedUsername, name: String(name).trim() })
-      .eq('id', userId);
+      .upsert({ id: userId, role: 'farmaceutico', username: normalizedUsername, name: cleanName }, { onConflict: 'id' });
 
     return new Response(JSON.stringify({ id: userId, email, role: 'farmaceutico' }), {
       status: 200,
