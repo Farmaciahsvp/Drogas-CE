@@ -237,7 +237,7 @@ export default function Prescriptions({ user }) {
             </button>
             <div className="border-b border-outline-variant pb-xs mb-md flex justify-between items-center">
               <h3 className="font-headline-md text-headline-md text-primary font-semibold">Receta Digitalizada</h3>
-              <span className="font-display-lg text-display-lg text-primary text-xl font-extrabold">{selectedPrescription.code}</span>
+              <span className="font-display-lg text-display-lg text-primary text-xl font-extrabold">{formatRecipeNumber(selectedPrescription.patient_name)}</span>
             </div>
             <div className="space-y-sm max-height-[250px] overflow-y-auto pr-sm scrollbar-thin">
               {selectedPrescription.items?.map((item) => (
