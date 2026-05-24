@@ -67,7 +67,8 @@ Deno.serve(async (req) => {
     }
 
     const rawUsername = String(username).trim().toLowerCase();
-    const normalizedUsername = rawUsername.includes('@')
+    const isEmailLogin = rawUsername.includes('@');
+    const normalizedUsername = isEmailLogin
       ? rawUsername.split('@')[0]
       : rawUsername;
     if (!normalizedUsername || normalizedUsername.length < 3) {
@@ -76,7 +77,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-    const email = `${normalizedUsername}@drogasce.local`;
+    const email = isEmailLogin ? rawUsername : `${normalizedUsername}@drogasce.local`;
 
     const cleanName = String(name).trim();
 
