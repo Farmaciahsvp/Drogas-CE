@@ -257,6 +257,51 @@ export const api = {
       }
     }
   },
+  inventoryAudits: {
+    getAll: async () => {
+      const { data, error } = await supabase
+        .from('inventory_audits')
+        .select('id, notes, created_by, created_at, profiles!inventory_audits_created_by_fkey(name), inventory_audit_items(id, medication_id, expected_stock, observed_stock, difference, medications(name, active_principle, unit))')
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message || 'Error al cargar historial de tomas.');
+      return (data || []).map((audit) => ({
+        id: audit.id,
+        notes: audit.notes,
+        created_by: audit.created_by,
+        created_at: audit.created_at,
+        pharmacist_name: audit.profiles?.name || 'No disponible',
+        items: (audit.inventory_audit_items || []).map((it) => ({
+          id: it.id,
+          medication_id: it.medication_id,
+          expected_stock: it.expected_stock,
+          observed_stock: it.observed_stock,
+          difference: it.difference,
+          medication_code: it.medications?.name || '',
+          medication_name: it.medications?.active_principle || '',
+          unit: it.medications?.unit || ''
+        }))
+      }));
+    },
+    create: async ({ notes, items }) => {
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new Error('Debe ingresar la cantidad observada de al menos un medicamento.');
+      }
+      const normalizedItems = items.map((it) => ({
+        medication_id: Number(it.medication_id),
+        observed_stock: Number(it.observed_stock)
+      }));
+      if (normalizedItems.some((it) => !Number.isInteger(it.medication_id) || !Number.isFinite(it.observed_stock) || it.observed_stock < 0)) {
+        throw new Error('Las cantidades observadas deben ser validas y mayores o iguales a 0.');
+      }
+
+      const { data, error } = await supabase.rpc('create_inventory_audit', {
+        p_notes: notes || '',
+        p_items: normalizedItems
+      });
+      if (error) throw new Error(error.message || 'No se pudo registrar la toma de inventario.');
+      return data;
+    }
+  },
   prescriptions: {
     getAll: async (status = '') => {
       let query = supabase

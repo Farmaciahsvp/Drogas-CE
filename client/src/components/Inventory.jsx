@@ -9,11 +9,13 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // all, low, out
+  const [inventoryAudits, setInventoryAudits] = useState([]);
 
   // Estados de modales
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRefillModalOpen, setIsRefillModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   // Estados de formularios
   const [selectedMed, setSelectedMed] = useState(null);
@@ -35,6 +37,10 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     quantity: '',
     notes: ''
   });
+  const [auditForm, setAuditForm] = useState({
+    notes: '',
+    observedByMedication: {}
+  });
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -42,6 +48,8 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     try {
       const data = await api.inventory.getAll();
       setMedications(data);
+      const audits = await api.inventoryAudits.getAll();
+      setInventoryAudits(audits);
     } catch (err) {
       setError('Error al obtener la lista de medicamentos.');
     } finally {
@@ -64,6 +72,18 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
       shelf_location: 'Almacén General'
     });
     setIsAddModalOpen(true);
+  };
+
+  const handleOpenAudit = () => {
+    const observedByMedication = {};
+    medications.forEach((med) => {
+      observedByMedication[med.id] = '';
+    });
+    setAuditForm({
+      notes: '',
+      observedByMedication
+    });
+    setIsAuditModalOpen(true);
   };
 
   const handleOpenRefill = (med) => {
@@ -131,6 +151,30 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     }
   };
 
+  const handleAuditSubmit = async (e) => {
+    e.preventDefault();
+    const items = medications.map((med) => ({
+      medication_id: med.id,
+      observed_stock: auditForm.observedByMedication[med.id]
+    }));
+
+    if (items.some((it) => it.observed_stock === '' || it.observed_stock === null || it.observed_stock === undefined)) {
+      alert('Debe ingresar la cantidad observada para todos los medicamentos.');
+      return;
+    }
+
+    try {
+      await api.inventoryAudits.create({
+        notes: auditForm.notes,
+        items
+      });
+      setIsAuditModalOpen(false);
+      fetchInventory();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   // Combinar el término de búsqueda global con el local
   const activeSearch = globalSearchTerm || localSearchTerm;
 
@@ -175,12 +219,30 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
           <p className="font-body-sm text-body-sm text-on-surface-variant">Catálogo completo de medicamentos y existencias en almacén</p>
         </div>
         {user.role === 'admin' && (
-          <button 
-            onClick={handleOpenAdd}
-            className="h-10 px-md rounded bg-primary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center gap-sm font-semibold"
+          <div className="flex items-center gap-sm">
+            <button
+              onClick={handleOpenAudit}
+              className="h-10 px-md rounded bg-secondary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center gap-sm font-semibold"
+            >
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+              Nueva Toma Inventario
+            </button>
+            <button 
+              onClick={handleOpenAdd}
+              className="h-10 px-md rounded bg-primary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center gap-sm font-semibold"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Registrar Medicamento
+            </button>
+          </div>
+        )}
+        {user.role === 'farmaceutico' && (
+          <button
+            onClick={handleOpenAudit}
+            className="h-10 px-md rounded bg-secondary text-on-primary font-label-caps text-label-caps hover:brightness-110 transition-all flex items-center gap-sm font-semibold"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Registrar Medicamento
+            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+            Nueva Toma Inventario
           </button>
         )}
       </div>
@@ -311,6 +373,114 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
           </div>
         )}
       </div>
+
+      <div className="bg-surface-container rounded-xl border border-outline-variant shadow-sm p-md space-y-sm">
+        <div className="flex items-center justify-between border-b border-outline-variant pb-xs">
+          <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">Histórico de Tomas de Inventario</h3>
+          <span className="text-xs text-on-surface-variant">{inventoryAudits.length} tomas registradas</span>
+        </div>
+        {inventoryAudits.length === 0 ? (
+          <p className="text-on-surface-variant text-sm">No hay tomas de inventario registradas.</p>
+        ) : (
+          <div className="space-y-sm max-h-[320px] overflow-y-auto pr-sm scrollbar-thin">
+            {inventoryAudits.map((audit) => (
+              <div key={audit.id} className="bg-surface-container-low border border-outline-variant rounded-lg p-sm">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-on-surface">Toma #{audit.id}</p>
+                  <p className="text-xs text-on-surface-variant">{new Date(audit.created_at).toLocaleString('es-CR')}</p>
+                </div>
+                <p className="text-sm text-on-surface-variant">Farmacéutico: {audit.pharmacist_name}</p>
+                {audit.notes && <p className="text-sm text-on-surface-variant">Notas: {audit.notes}</p>}
+                <div className="mt-2 text-xs text-on-surface-variant">
+                  {audit.items.length} medicamentos revisados
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {isAuditModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-md">
+          <div className="bg-surface-container border border-outline-variant rounded-2xl max-w-4xl w-full p-lg shadow-2xl relative">
+            <button
+              onClick={() => setIsAuditModalOpen(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <h3 className="font-headline-md text-headline-md text-primary mb-md border-b border-outline-variant pb-xs">
+              Registrar Toma de Inventario Físico
+            </h3>
+            <form onSubmit={handleAuditSubmit} className="space-y-md">
+              <div className="bg-surface-container-low border border-outline-variant rounded-lg overflow-hidden max-h-[420px] overflow-y-auto">
+                <table className="w-full text-center border-collapse">
+                  <thead className="bg-surface-container-high/40 border-b border-outline-variant sticky top-0">
+                    <tr>
+                      <th className="px-md py-sm text-xs text-on-surface-variant">Código</th>
+                      <th className="px-md py-sm text-xs text-on-surface-variant">Principio Activo</th>
+                      <th className="px-md py-sm text-xs text-on-surface-variant">Stock Sistema</th>
+                      <th className="px-md py-sm text-xs text-on-surface-variant">Cantidad Observada (Obligatoria)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant">
+                    {medications.map((med) => (
+                      <tr key={med.id}>
+                        <td className="px-md py-sm font-semibold">{med.name}</td>
+                        <td className="px-md py-sm text-on-surface-variant">{med.active_principle}</td>
+                        <td className="px-md py-sm">{med.stock} {med.unit}</td>
+                        <td className="px-md py-sm">
+                          <input
+                            type="number"
+                            min="0"
+                            required
+                            value={auditForm.observedByMedication[med.id]}
+                            onChange={(e) =>
+                              setAuditForm((prev) => ({
+                                ...prev,
+                                observedByMedication: {
+                                  ...prev.observedByMedication,
+                                  [med.id]: e.target.value === '' ? '' : Number(e.target.value)
+                                }
+                              }))
+                            }
+                            className="w-36 bg-surface-variant border-none rounded-lg px-3 py-2 text-on-surface text-sm focus:ring-1 focus:ring-primary focus:outline-none text-center"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-col gap-xs">
+                <label className="text-xs font-semibold text-on-surface-variant">Notas (opcional)</label>
+                <input
+                  type="text"
+                  value={auditForm.notes}
+                  onChange={(e) => setAuditForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="bg-surface-variant border-none rounded-lg px-4 py-2 text-on-surface focus:ring-1 focus:ring-primary text-sm focus:outline-none"
+                  placeholder="Observaciones de la toma"
+                />
+              </div>
+              <div className="flex justify-end gap-sm pt-sm border-t border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => setIsAuditModalOpen(false)}
+                  className="h-10 px-md rounded border border-outline-variant text-on-surface font-semibold text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="h-10 px-md rounded bg-primary text-on-primary font-semibold text-xs"
+                >
+                  Guardar Toma
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL: AGREGAR MEDICAMENTO --- */}
       {isAddModalOpen && (
