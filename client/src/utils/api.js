@@ -345,7 +345,7 @@ export const api = {
       if (cached) return cached;
       const { data, error } = await supabase
         .from('medications')
-        .select('id, name, active_principle, category, stock, unit, min_stock, shelf_location')
+        .select('id, name, active_principle, category, stock, initial_stock, unit, min_stock, shelf_location')
         .order('name', { ascending: true });
       if (error) throw new Error(error.message || 'Error al cargar inventario.');
       writeCache('inventory:all', data || []);
@@ -357,6 +357,7 @@ export const api = {
         active_principle: medicationData.active_principle,
         category: medicationData.category,
         stock: Number(medicationData.stock) || 0,
+        initial_stock: Number(medicationData.stock) || 0,
         unit: medicationData.unit,
         min_stock: Number(medicationData.min_stock) || 0,
         shelf_location: medicationData.shelf_location || 'Almacen General'
