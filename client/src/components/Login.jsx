@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import medicationHero from '../assets/medication_hero.png';
 
@@ -54,15 +54,10 @@ export default function Login({ onLoginSuccess }) {
       saveRecentUser(email);
       onLoginSuccess(response.user);
     } catch (err) {
-      setError(err.message || 'Error al iniciar sesión. Verifique sus credenciales.');
+      setError(err.message || 'Error al iniciar sesiÃ³n. Verifique sus credenciales.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillCredentials = (mail, pass) => {
-    setEmail(mail);
-    setPassword(pass);
   };
 
   return (
@@ -85,10 +80,10 @@ export default function Login({ onLoginSuccess }) {
 
           <div className="relative z-20 space-y-md my-auto">
             <h2 className="text-display-lg font-display-lg text-white leading-tight">
-              Gestión Digital de Recetas e Inventario
+              GestiÃ³n Digital de Recetas e Inventario
             </h2>
             <p className="text-body-sm text-on-surface-variant leading-relaxed">
-              El estándar moderno de seguridad, trazabilidad e inventario farmacéutico con registro atómico de egresos.
+              El estÃ¡ndar moderno de seguridad, trazabilidad e inventario farmacÃ©utico con registro atÃ³mico de egresos.
             </p>
 
             <div className="space-y-sm pt-4">
@@ -98,8 +93,8 @@ export default function Login({ onLoginSuccess }) {
                   <span className="material-symbols-outlined text-sm">edit_document</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Captura de Recetas Físicas</h4>
-                  <p className="text-xs text-on-surface-variant mt-0.5">Digitalización y validación inmediata en ventanilla.</p>
+                  <h4 className="text-sm font-semibold text-white">Captura de Recetas FÃ­sicas</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">DigitalizaciÃ³n y validaciÃ³n inmediata en ventanilla.</p>
                 </div>
               </div>
 
@@ -108,8 +103,8 @@ export default function Login({ onLoginSuccess }) {
                   <span className="material-symbols-outlined text-sm">warning</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Prevención de Quiebres</h4>
-                  <p className="text-xs text-on-surface-variant mt-0.5">Control estricto de existencias mínimas de seguridad.</p>
+                  <h4 className="text-sm font-semibold text-white">PrevenciÃ³n de Quiebres</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Control estricto de existencias mÃ­nimas de seguridad.</p>
                 </div>
               </div>
 
@@ -118,8 +113,8 @@ export default function Login({ onLoginSuccess }) {
                   <span className="material-symbols-outlined text-sm">analytics</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Bitácora Oficial Kárdex</h4>
-                  <p className="text-xs text-on-surface-variant mt-0.5">Registro cronológico de entradas y salidas listo para imprimir.</p>
+                  <h4 className="text-sm font-semibold text-white">BitÃ¡cora Oficial KÃ¡rdex</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Registro cronolÃ³gico de entradas y salidas listo para imprimir.</p>
                 </div>
               </div>
 
@@ -127,14 +122,14 @@ export default function Login({ onLoginSuccess }) {
           </div>
 
           <div className="relative z-20 text-[10px] text-on-surface-variant font-medium tracking-wider uppercase border-t border-outline-variant/30 pt-md mt-lg">
-            © 2026 Drogas CE | PharmOps Pro Terminal 08-24
+            Â© 2026 Drogas CE | PharmOps Pro Terminal 08-24
           </div>
         </div>
 
         {/* PANEL DE FORMULARIO (DERECHA) */}
         <div className="w-full md:w-1/2 p-md md:p-xl flex flex-col justify-center bg-surface-container-low">
           
-          {/* Cabecera Móvil */}
+          {/* Cabecera MÃ³vil */}
           <div className="flex flex-col items-center text-center md:hidden mb-lg">
             <div className="w-12 h-12 bg-primary-container flex items-center justify-center rounded-xl mb-sm shadow-md">
               <span className="material-symbols-outlined text-on-primary-container text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>medical_services</span>
@@ -145,8 +140,8 @@ export default function Login({ onLoginSuccess }) {
 
           {/* Cabecera Desktop */}
           <div className="hidden md:block mb-xl">
-            <h2 className="text-2xl font-bold text-on-surface font-headline-md tracking-tight">Iniciar Sesión</h2>
-            <p className="text-sm text-on-surface-variant mt-1">Ingrese sus credenciales farmacéuticas autorizadas.</p>
+            <h2 className="text-2xl font-bold text-on-surface font-headline-md tracking-tight">Iniciar SesiÃ³n</h2>
+            <p className="text-sm text-on-surface-variant mt-1">Ingrese sus credenciales farmacÃ©uticas autorizadas.</p>
           </div>
 
           {error && (
@@ -159,7 +154,7 @@ export default function Login({ onLoginSuccess }) {
           <form onSubmit={handleSubmit} className="space-y-md">
             
             <div className="flex flex-col gap-xs">
-              <label className="text-xs font-semibold text-on-surface-variant">Usuario Farmacéutico</label>
+              <label className="text-xs font-semibold text-on-surface-variant">Usuario FarmacÃ©utico</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">person</span>
                 <input
@@ -194,14 +189,14 @@ export default function Login({ onLoginSuccess }) {
             </div>
 
             <div className="flex flex-col gap-xs">
-              <label className="text-xs font-semibold text-on-surface-variant">Contraseña de Almacén</label>
+              <label className="text-xs font-semibold text-on-surface-variant">ContraseÃ±a de AlmacÃ©n</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">lock</span>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   className="w-full bg-surface-variant border-none rounded-lg pl-10 pr-4 py-2.5 text-on-surface placeholder:text-on-surface-variant focus:ring-1 focus:ring-primary text-sm focus:outline-none"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
@@ -216,7 +211,7 @@ export default function Login({ onLoginSuccess }) {
                   onChange={(e) => setShowPassword(e.target.checked)}
                 />
                 <label htmlFor="show-password" className="text-xs text-on-surface-variant font-medium cursor-pointer select-none">
-                  Mostrar Contraseña
+                  Mostrar ContraseÃ±a
                 </label>
               </div>
             </div>
@@ -226,40 +221,17 @@ export default function Login({ onLoginSuccess }) {
               disabled={loading}
               className="w-full h-11 rounded bg-primary text-on-primary font-label-caps text-label-caps text-sm hover:brightness-110 transition-all flex items-center justify-center font-bold tracking-wider"
             >
-              {loading ? 'Accediendo al Kárdex...' : 'Ingresar al Kárdex'}
+              {loading ? 'Accediendo al KÃ¡rdex...' : 'Ingresar al KÃ¡rdex'}
             </button>
 
           </form>
-
-          {/* Accesos rápidos */}
-          <div className="mt-xl border-t border-outline-variant/60 pt-md">
-            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-sm">Accesos de prueba (usa correo de Supabase):</p>
-            <div className="space-y-xs">
-              <button
-                onClick={() => fillCredentials('admin@drogasce.local', 'admin123')}
-                disabled={loading}
-                className="w-full flex justify-between items-center px-sm py-2 rounded-lg bg-surface-variant border border-outline-variant text-xs text-on-surface hover:border-primary hover:text-primary transition-all focus:outline-none"
-              >
-                <span className="font-semibold flex items-center gap-xs">💻 Administrador</span>
-                <code className="bg-background/40 px-xs py-0.5 rounded text-[10px]">admin@drogasce.local / admin123</code>
-              </button>
-              <button
-                onClick={() => fillCredentials('farma@drogasce.local', 'farma123')}
-                disabled={loading}
-                className="w-full flex justify-between items-center px-sm py-2 rounded-lg bg-surface-variant border border-outline-variant text-xs text-on-surface hover:border-primary hover:text-primary transition-all focus:outline-none"
-              >
-                <span className="font-semibold flex items-center gap-xs">💊 Farmacéutico</span>
-                <code className="bg-background/40 px-xs py-0.5 rounded text-[10px]">farma@drogasce.local / farma123</code>
-              </button>
-            </div>
-          </div>
-
         </div>
 
       </div>
     </div>
   );
 }
+
 
 
 
