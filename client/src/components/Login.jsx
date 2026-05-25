@@ -54,7 +54,7 @@ export default function Login({ onLoginSuccess }) {
       saveRecentUser(email);
       onLoginSuccess(response.user);
     } catch (err) {
-      setError(err.message || 'Error al iniciar sesiÃ³n. Verifique sus credenciales.');
+      setError(err.message || 'Error al iniciar sesión. Verifique sus credenciales.');
     } finally {
       setLoading(false);
     }
@@ -80,10 +80,10 @@ export default function Login({ onLoginSuccess }) {
 
           <div className="relative z-20 space-y-md my-auto">
             <h2 className="text-display-lg font-display-lg text-white leading-tight">
-              GestiÃ³n Digital de Recetas e Inventario
+              Gestión Digital de Recetas e Inventario
             </h2>
             <p className="text-body-sm text-on-surface-variant leading-relaxed">
-              El estÃ¡ndar moderno de seguridad, trazabilidad e inventario farmacÃ©utico con registro atÃ³mico de egresos.
+              El estándar moderno de seguridad, trazabilidad e inventario farmacéutico con registro atómico de egresos.
             </p>
 
             <div className="space-y-sm pt-4">
@@ -93,8 +93,8 @@ export default function Login({ onLoginSuccess }) {
                   <span className="material-symbols-outlined text-sm">edit_document</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Captura de Recetas FÃ­sicas</h4>
-                  <p className="text-xs text-on-surface-variant mt-0.5">DigitalizaciÃ³n y validaciÃ³n inmediata en ventanilla.</p>
+                  <h4 className="text-sm font-semibold text-white">Captura de Recetas Físicas</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Digitalización y validación inmediata en ventanilla.</p>
                 </div>
               </div>
 
@@ -103,8 +103,8 @@ export default function Login({ onLoginSuccess }) {
                   <span className="material-symbols-outlined text-sm">warning</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">PrevenciÃ³n de Quiebres</h4>
-                  <p className="text-xs text-on-surface-variant mt-0.5">Control estricto de existencias mÃ­nimas de seguridad.</p>
+                  <h4 className="text-sm font-semibold text-white">Prevención de Quiebres</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Control estricto de existencias mínimas de seguridad.</p>
                 </div>
               </div>
 
@@ -113,8 +113,8 @@ export default function Login({ onLoginSuccess }) {
                   <span className="material-symbols-outlined text-sm">analytics</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">BitÃ¡cora Oficial KÃ¡rdex</h4>
-                  <p className="text-xs text-on-surface-variant mt-0.5">Registro cronolÃ³gico de entradas y salidas listo para imprimir.</p>
+                  <h4 className="text-sm font-semibold text-white">Bitácora Oficial Kárdex</h4>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Registro cronológico de entradas y salidas listo para imprimir.</p>
                 </div>
               </div>
 
@@ -122,14 +122,14 @@ export default function Login({ onLoginSuccess }) {
           </div>
 
           <div className="relative z-20 text-[10px] text-on-surface-variant font-medium tracking-wider uppercase border-t border-outline-variant/30 pt-md mt-lg">
-            Â© 2026 Drogas CE | PharmOps Pro Terminal 08-24
+            © 2026 Drogas CE | PharmOps Pro Terminal 08-24
           </div>
         </div>
 
         {/* PANEL DE FORMULARIO (DERECHA) */}
         <div className="w-full md:w-1/2 p-md md:p-xl flex flex-col justify-center bg-surface-container-low">
           
-          {/* Cabecera MÃ³vil */}
+          {/* Cabecera Móvil */}
           <div className="flex flex-col items-center text-center md:hidden mb-lg">
             <div className="w-12 h-12 bg-primary-container flex items-center justify-center rounded-xl mb-sm shadow-md">
               <span className="material-symbols-outlined text-on-primary-container text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>medical_services</span>
@@ -140,8 +140,8 @@ export default function Login({ onLoginSuccess }) {
 
           {/* Cabecera Desktop */}
           <div className="hidden md:block mb-xl">
-            <h2 className="text-2xl font-bold text-on-surface font-headline-md tracking-tight">Iniciar SesiÃ³n</h2>
-            <p className="text-sm text-on-surface-variant mt-1">Ingrese sus credenciales farmacÃ©uticas autorizadas.</p>
+            <h2 className="text-2xl font-bold text-on-surface font-headline-md tracking-tight">Iniciar Sesión</h2>
+            <p className="text-sm text-on-surface-variant mt-1">Ingrese sus credenciales farmacéuticas autorizadas.</p>
           </div>
 
           {error && (
@@ -154,7 +154,7 @@ export default function Login({ onLoginSuccess }) {
           <form onSubmit={handleSubmit} className="space-y-md">
             
             <div className="flex flex-col gap-xs">
-              <label className="text-xs font-semibold text-on-surface-variant">Usuario FarmacÃ©utico</label>
+              <label className="text-xs font-semibold text-on-surface-variant">Usuario Farmacéutico</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">person</span>
                 <input
@@ -189,7 +189,7 @@ export default function Login({ onLoginSuccess }) {
             </div>
 
             <div className="flex flex-col gap-xs">
-              <label className="text-xs font-semibold text-on-surface-variant">ContraseÃ±a de AlmacÃ©n</label>
+              <label className="text-xs font-semibold text-on-surface-variant">Contraseña de Almacén</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">lock</span>
                 <input
@@ -211,7 +211,7 @@ export default function Login({ onLoginSuccess }) {
                   onChange={(e) => setShowPassword(e.target.checked)}
                 />
                 <label htmlFor="show-password" className="text-xs text-on-surface-variant font-medium cursor-pointer select-none">
-                  Mostrar ContraseÃ±a
+                  Mostrar Contraseña
                 </label>
               </div>
             </div>
@@ -221,7 +221,7 @@ export default function Login({ onLoginSuccess }) {
               disabled={loading}
               className="w-full h-11 rounded bg-primary text-on-primary font-label-caps text-label-caps text-sm hover:brightness-110 transition-all flex items-center justify-center font-bold tracking-wider"
             >
-              {loading ? 'Accediendo al KÃ¡rdex...' : 'Ingresar al KÃ¡rdex'}
+              {loading ? 'Accediendo al Kárdex...' : 'Ingresar al Kárdex'}
             </button>
 
           </form>
