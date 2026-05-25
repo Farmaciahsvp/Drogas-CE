@@ -485,25 +485,14 @@ export const api = {
         throw new Error('La cantidad observada debe ser mayor o igual a 0.');
       }
 
-      const { data: row, error: fetchError } = await supabase
-        .from('inventory_audit_items')
-        .select('id, expected_stock')
-        .eq('id', itemId)
-        .maybeSingle();
-      if (fetchError || !row) {
-        throw new Error(fetchError?.message || 'No se encontro el item de auditoria.');
-      }
-
-      const difference = obs - Number(row.expected_stock || 0);
-      const { error } = await supabase
-        .from('inventory_audit_items')
-        .update({ observed_stock: obs, difference })
-        .eq('id', itemId);
-      if (error) {
-        throw new Error(error.message || 'No se pudo actualizar la cantidad observada.');
-      }
+      const { data, error } = await supabase.rpc('update_inventory_audit_item_observed', {
+        p_item_id: itemId,
+        p_observed_stock: obs
+      });
+      if (error) throw new Error(error.message || 'No se pudo actualizar la cantidad observada.');
+      if (!data?.ok) throw new Error('No se pudo actualizar la cantidad observada.');
       invalidateOperationalCache();
-      return { id: itemId };
+      return data;
     }
   },
   prescriptions: {
