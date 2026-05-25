@@ -489,7 +489,7 @@ export const api = {
         .from('inventory_audit_items')
         .select('id, expected_stock')
         .eq('id', itemId)
-        .single();
+        .maybeSingle();
       if (fetchError || !row) {
         throw new Error(fetchError?.message || 'No se encontro el item de auditoria.');
       }
@@ -500,9 +500,12 @@ export const api = {
         .update({ observed_stock: obs, difference })
         .eq('id', itemId)
         .select('id')
-        .single();
+        .maybeSingle();
       if (error) {
         throw new Error(error.message || 'No se pudo actualizar la cantidad observada.');
+      }
+      if (!data) {
+        throw new Error('No se pudo actualizar la cantidad observada (sin filas afectadas).');
       }
       invalidateOperationalCache();
       return data;
