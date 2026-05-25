@@ -474,6 +474,38 @@ export const api = {
       if (error) throw new Error(error.message || 'No se pudo registrar la toma de inventario.');
       invalidateOperationalCache();
       return data;
+    },
+    updateObservedStock: async (auditItemId, observedStock) => {
+      const itemId = Number(auditItemId);
+      const obs = Number(observedStock);
+      if (!Number.isInteger(itemId) || itemId <= 0) {
+        throw new Error('Identificador de item de auditoria invalido.');
+      }
+      if (!Number.isFinite(obs) || obs < 0) {
+        throw new Error('La cantidad observada debe ser mayor o igual a 0.');
+      }
+
+      const { data: row, error: fetchError } = await supabase
+        .from('inventory_audit_items')
+        .select('id, expected_stock')
+        .eq('id', itemId)
+        .single();
+      if (fetchError || !row) {
+        throw new Error(fetchError?.message || 'No se encontro el item de auditoria.');
+      }
+
+      const difference = obs - Number(row.expected_stock || 0);
+      const { data, error } = await supabase
+        .from('inventory_audit_items')
+        .update({ observed_stock: obs, difference })
+        .eq('id', itemId)
+        .select('id')
+        .single();
+      if (error) {
+        throw new Error(error.message || 'No se pudo actualizar la cantidad observada.');
+      }
+      invalidateOperationalCache();
+      return data;
     }
   },
   prescriptions: {

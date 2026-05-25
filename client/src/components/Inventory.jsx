@@ -44,6 +44,8 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
     observedByMedication: {}
   });
   const [selectedAudit, setSelectedAudit] = useState(null);
+  const [editingObservedByItem, setEditingObservedByItem] = useState({});
+  const [savingObservedItemId, setSavingObservedItemId] = useState(null);
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -182,7 +184,44 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
 
   const handleOpenAuditDetails = (audit) => {
     setSelectedAudit(audit);
+    const observedMap = {};
+    (audit.items || []).forEach((item) => {
+      observedMap[item.id] = Number(item.observed_stock ?? 0);
+    });
+    setEditingObservedByItem(observedMap);
     setIsAuditDetailsModalOpen(true);
+  };
+
+  const handleSaveObservedStock = async (item) => {
+    const nextObserved = Number(editingObservedByItem[item.id]);
+    if (!Number.isFinite(nextObserved) || nextObserved < 0) {
+      alert('La cantidad observada debe ser mayor o igual a 0.');
+      return;
+    }
+    try {
+      setSavingObservedItemId(item.id);
+      await api.inventoryAudits.updateObservedStock(item.id, nextObserved);
+      await fetchInventory();
+      setSelectedAudit((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((it) =>
+            it.id === item.id
+              ? {
+                  ...it,
+                  observed_stock: nextObserved,
+                  difference: nextObserved - Number(it.expected_stock || 0)
+                }
+              : it
+          )
+        };
+      });
+    } catch (err) {
+      alert(err.message || 'No se pudo actualizar la cantidad observada.');
+    } finally {
+      setSavingObservedItemId(null);
+    }
   };
 
   // Combinar el término de búsqueda global con el local
@@ -540,6 +579,7 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                     <th className="px-md py-sm text-xs text-on-surface-variant">Sistema</th>
                     <th className="px-md py-sm text-xs text-on-surface-variant">Observado</th>
                     <th className="px-md py-sm text-xs text-on-surface-variant">Diferencia</th>
+                    <th className="px-md py-sm text-xs text-on-surface-variant">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant">
@@ -551,9 +591,35 @@ export default function Inventory({ user, searchTerm: globalSearchTerm = '' }) {
                         <td className="px-md py-sm font-semibold">{item.medication_code}</td>
                         <td className="px-md py-sm text-on-surface-variant">{item.medication_name}</td>
                         <td className="px-md py-sm">{item.expected_stock} {item.unit}</td>
-                        <td className="px-md py-sm">{item.observed_stock} {item.unit}</td>
+                        <td className="px-md py-sm">
+                          <div className="flex items-center justify-center gap-xs">
+                            <input
+                              type="number"
+                              min="0"
+                              value={editingObservedByItem[item.id] ?? 0}
+                              onChange={(e) =>
+                                setEditingObservedByItem((prev) => ({
+                                  ...prev,
+                                  [item.id]: e.target.value === '' ? '' : Number(e.target.value)
+                                }))
+                              }
+                              className="w-24 bg-surface-variant border border-outline-variant rounded px-2 py-1 text-center text-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
+                            />
+                            <span className="text-on-surface-variant text-sm">{item.unit}</span>
+                          </div>
+                        </td>
                         <td className={`px-md py-sm font-semibold ${isUp ? 'text-secondary' : isDown ? 'text-error' : 'text-on-surface-variant'}`}>
                           {item.difference > 0 ? '+' : ''}{item.difference} {item.unit}
+                        </td>
+                        <td className="px-md py-sm">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveObservedStock(item)}
+                            disabled={savingObservedItemId === item.id}
+                            className="h-8 px-sm rounded bg-primary text-on-primary text-xs font-semibold disabled:opacity-60"
+                          >
+                            {savingObservedItemId === item.id ? 'Guardando...' : 'Editar cantidad'}
+                          </button>
                         </td>
                       </tr>
                     );
