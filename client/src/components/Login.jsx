@@ -85,7 +85,7 @@ export default function Login({ onLoginSuccess }) {
 
           <div className="relative z-20 space-y-md my-auto">
             <h2 className="text-display-lg font-display-lg text-white leading-tight">
-              Gestión Digital de Kárdex y Recetas
+              Gestión Digital de Recetas e Inventario
             </h2>
             <p className="text-body-sm text-on-surface-variant leading-relaxed">
               El estándar moderno de seguridad, trazabilidad e inventario farmacéutico con registro atómico de egresos.
