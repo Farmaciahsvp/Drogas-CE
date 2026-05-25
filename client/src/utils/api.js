@@ -495,20 +495,15 @@ export const api = {
       }
 
       const difference = obs - Number(row.expected_stock || 0);
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('inventory_audit_items')
         .update({ observed_stock: obs, difference })
-        .eq('id', itemId)
-        .select('id')
-        .maybeSingle();
+        .eq('id', itemId);
       if (error) {
         throw new Error(error.message || 'No se pudo actualizar la cantidad observada.');
       }
-      if (!data) {
-        throw new Error('No se pudo actualizar la cantidad observada (sin filas afectadas).');
-      }
       invalidateOperationalCache();
-      return data;
+      return { id: itemId };
     }
   },
   prescriptions: {
